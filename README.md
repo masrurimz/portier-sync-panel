@@ -1,84 +1,184 @@
-# portier-sync
+# Portier Integration Sync Panel
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Start, Self, and more.
+A Web App Integration Sync Panel for a B2B SaaS platform that connects to multiple external services (Salesforce, HubSpot, Stripe, Slack, Zendesk, Intercom) with bidirectional data synchronization and conflict resolution.
 
 ## Features
 
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Start** - SSR framework with TanStack Router
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Oxlint** - Oxlint + Oxfmt (linting & formatting)
-- **Turborepo** - Optimized monorepo build system
+- **Integrations List** - Overview of all connected integrations with status indicators (Synced, Syncing, Conflict, Error)
+- **Integration Detail** - Summary view with sync statistics and "Sync Now" action
+- **Sync History** - Version tracking with expandable history entries
+- **Review Changes** - Preview incoming changes before applying with field-level comparison
+- **Conflict Resolution** - Side-by-side comparison for resolving data conflicts
+
+## Tech Stack
+
+- **TanStack Start** - SSR framework with file-based routing
+- **TanStack Query** - Data fetching and caching
+- **TailwindCSS 4** - Utility-first CSS
+- **shadcn/ui** - Component library (base-lyra style)
+- **TypeScript** - Type safety
+- **Turborepo** - Monorepo build system
+- **Bun** - Package manager and runtime
 
 ## Getting Started
 
-First, install the dependencies:
+### Prerequisites
+
+- [Bun](https://bun.sh) >= 1.0
+- [Docker](https://docker.com) (for containerized deployment)
+
+### Installation
 
 ```bash
 bun install
 ```
 
-Then, run the development server:
+### Development
 
 ```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
+### Build
 
 ```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
+bun run build
 ```
 
-Import shared components like this:
+## API
 
-```tsx
-import { Button } from "@portier-sync/ui/components/button";
+### Endpoint
+
+```
+GET https://portier-takehometest.onrender.com/api/v1/data/sync?application_id={id}
 ```
 
-### Add app-specific blocks
+### Application IDs
 
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
+| ID | Status |
+|----|--------|
+| `salesforce` | Working |
+| `slack` | Working |
+| `intercom` | Working |
+| `hubspot` | Timeout |
+| `stripe` | Error (500) |
+| `zendesk` | Error (500) |
 
-## Deployment (Cloudflare via Alchemy)
+### Response Structure
 
-- Dev: cd apps/web && bun run alchemy dev
-- Deploy: cd apps/web && bun run deploy
-- Destroy: cd apps/web && bun run destroy
+```json
+{
+  "code": "SUCCESS",
+  "message": "successfully retrieve the data",
+  "data": {
+    "sync_approval": {
+      "application_name": "Salesforce",
+      "changes": [
+        {
+          "id": "change_001",
+          "field_name": "user.email",
+          "change_type": "UPDATE",
+          "current_value": "old@email.com",
+          "new_value": "new@email.com"
+        }
+      ]
+    }
+  }
+}
+```
 
-For more details, see the guide on [Deploying to Cloudflare with Alchemy](https://www.better-t-stack.dev/docs/guides/cloudflare-alchemy).
+### Change Types
 
-## Git Hooks and Formatting
-
-- Format and lint fix: `bun run check`
+- `UPDATE` - Field modified (has `current_value` and `new_value`)
+- `ADD` - New record created (has `new_value` only)
+- `DELETE` - Record removed (has `current_value` only)
 
 ## Project Structure
 
 ```
 portier-sync/
 ├── apps/
-│   └── web/         # Fullstack application (React + TanStack Start)
+│   └── web/
+│       └── src/
+│           ├── routes/           # TanStack Router pages
+│           ├── components/       # App-specific components
+│           └── lib/              # Utilities and API client
 ├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
+│   ├── ui/                       # Shared shadcn/ui components
+│   ├── env/                      # Environment config
+│   └── config/                   # Shared TypeScript config
+└── docs/                         # Project documentation
 ```
+
+## Docker Deployment
+
+### Build Image
+
+```bash
+docker build -t portier-sync .
+```
+
+### Run Container
+
+```bash
+docker run -p 3001:3001 portier-sync
+```
+
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
 ## Available Scripts
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run check-types`: Check TypeScript types across all apps
-- `bun run check`: Run Oxlint and Oxfmt
+| Script | Description |
+|--------|-------------|
+| `bun run dev` | Start development server |
+| `bun run build` | Build for production |
+| `bun run check-types` | TypeScript type check |
+| `bun run check` | Lint and format |
+
+## Adding Components
+
+Add shadcn components to the shared UI package:
+
+```bash
+npx shadcn@latest add table badge accordion dialog tabs -c packages/ui
+```
+
+Import in app:
+
+```tsx
+import { Button } from "@portier-sync/ui/components/button";
+import { Card } from "@portier-sync/ui/components/card";
+```
+
+## Design Decisions
+
+### Architecture
+
+- **Separation of concerns**: UI components, business logic, and API calls are separated
+- **Type safety**: Full TypeScript coverage with Zod validation
+- **State management**: TanStack Query for server state, React state for UI state
+
+### Error Handling
+
+- 4xx errors show user-friendly configuration messages
+- 5xx errors display retry options
+- Loading states with skeleton components
+- Toast notifications for async operations
+
+### UX Considerations
+
+- Review-before-apply workflow for all sync operations
+- Per-change selection for granular control
+- Version history for auditability
+- Clear status indicators with color coding
+
+## Documentation
+
+- [Project Context](./docs/PROJECT_CONTEXT.md) - Full API docs and requirements
+- [UI Patterns](./docs/UI_PATTERNS.md) - Design patterns and component guidelines
+
+## License
+
+MIT
