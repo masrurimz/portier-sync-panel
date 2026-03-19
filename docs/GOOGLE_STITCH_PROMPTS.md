@@ -33,6 +33,51 @@ What to emphasize:
 - clarity during review and conflict resolution
 - auditability and trust
 
+Recommended target scope for this take-home:
+- 3 core views only
+- use sections, drawers, and modals instead of turning every state into a new page
+- keep the main loop easy to understand: Sync -> Preview -> Resolve if needed -> Apply -> History
+
+---
+
+## Recommended UX Target
+
+Keep the product to these 3 views:
+
+1. Integrations
+- A home list of integrations
+- Each row shows status, last sync time, version, and conflict count if any
+- Conflicts should be highly visible here so users instantly know which integration needs attention
+
+2. Integration Detail
+- One page that combines summary, latest preview, and history
+- Sync Now lives here as the main action
+- After Sync Now, show preview results directly in this page rather than sending the user through many intermediate screens
+- History should be a section in this page; individual run details can open in a drawer or modal
+
+3. Conflict Resolver
+- A dedicated focused view only when conflicts exist
+- Show one conflict at a time or a clear conflict list with progress
+- Let the user compare both sides and resolve safely
+- End with a review-and-confirm step inside the same flow
+
+What should not become separate full screens:
+- preview details
+- confirm modal as a standalone page
+- history detail page
+- result page if it can be a strong inline state or modal
+
+Core happy path:
+1. User sees integrations list and notices sync health/conflicts
+2. User opens one integration
+3. User clicks Sync Now
+4. System loads preview
+5. If there are no conflicts, user reviews summary and applies changes from the detail page
+6. If there are conflicts, user enters the Conflict Resolver, finishes decisions, then confirms
+7. Result is shown and the run appears in history
+
+This is the simplest complete product shape for the brief.
+
 ---
 
 ## Primary Stitch Prompt
@@ -89,28 +134,31 @@ Integrations to include:
 - Zendesk
 - Intercom
 
-Design the full workflow:
+Design the product around 3 core views:
 
 1. Integrations List
 - Show all integrations with status, connection health, attention needed, last sync time, and version.
 - Include search/filtering.
 - Support loading, empty, and error states.
+- If an integration has conflicts, make that highly visible in the row itself.
 
 2. Integration Detail
 - Show overview, current sync health, last run summary, and configuration context.
 - Include Sync Now as the primary action.
-- Make it easy to reach preview and history.
+- Combine detail, latest preview, and history in this same view.
+- Do not split preview and history into unnecessary extra pages.
 
-3. Sync Preview
-- This is the most important part of the product.
-- Show what will change before anything is applied.
+3. Latest Preview inside Integration Detail
+- This is the most important section of the product.
+- After Sync Now, show what will change before anything is applied.
 - Group changes into Added, Updated, Deleted, and Conflicts.
 - Show counts, scope, and risk clearly.
 - Let users inspect individual records and fields.
 - Make the experience feel like a review checkpoint, not a background operation.
 - Show examples of realistic changes across User, Door, and Key records so the product does not feel abstract.
+- If there are no conflicts, the user should be able to apply directly from this view.
 
-4. Conflict Resolution
+4. Conflict Resolver
 - Show side-by-side comparison of Portier value vs integration value.
 - Show provenance or explanation for why something is a conflict.
 - Let users choose a resolution per field.
@@ -118,23 +166,27 @@ Design the full workflow:
 - Make unresolved conflicts impossible to miss.
 - Block final confirmation if required decisions are missing.
 - Ensure the conflict UI works for fields like user.email, user.role, door.status, door.location, key.status, and key.access_end.
+- This should be the only dedicated focused flow outside the main detail page.
 
 5. Confirm and Apply
-- Show a deliberate confirmation step.
+- Keep confirmation lightweight and integrated.
 - Summarize exactly what will happen.
 - Make risky consequences legible.
 - Reinforce user confidence before apply.
+- This can be an in-page confirmation state, drawer, or modal rather than a separate screen.
 
 6. Result State
 - Show success, partial success, and failure outcomes.
 - If partial, explain what succeeded, what failed, and what the user should do next.
 - Include retry or follow-up actions.
+- Prefer inline result treatment or modal feedback over creating another large page.
 
-7. History and Audit
+7. History and Audit inside Integration Detail
 - Show a timeline or list of past sync runs.
 - Include timestamp, source, integration, version, outcome, counts, and drill-down details.
 - Let users inspect what changed and how conflicts were resolved.
 - Make the history feel referenceable and trustworthy.
+- Detailed run inspection can use a drawer or modal.
 
 Important states to design explicitly:
 - initial loading
@@ -178,7 +230,7 @@ Non-negotiable UX principles:
 - high clarity in states and outcomes
 
 Visual exploration requirements:
-- Create 3 distinct high-fidelity design directions for the same product flow
+- Create 3 distinct high-fidelity design directions for the same 3-view product flow
 - Each direction should have a different layout approach and information hierarchy, not just different colors
 - Do not default to a cookie-cutter enterprise dashboard
 - Do not use generic left-sidebar-plus-card-grid patterns unless there is a very strong reason
@@ -186,7 +238,8 @@ Visual exploration requirements:
 - Use the visual system to support trust, review, and decision-making
 
 Output requirements:
-- Produce the full set of screens for each direction: Integrations List, Integration Detail, Sync Preview, Conflict Resolution, Confirm and Apply, Result, History
+- Produce the full set of screens for each direction: Integrations List, Integration Detail, Conflict Resolver
+- Show how preview, history, confirmation, and result states live within those core views
 - For each direction, briefly explain what makes its UX approach distinct
 - Keep the design high-fidelity and presentation-ready
 - Optimize for thoughtful product design, not just pretty screens
