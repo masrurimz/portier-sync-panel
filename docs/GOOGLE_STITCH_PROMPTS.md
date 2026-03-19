@@ -34,47 +34,57 @@ What to emphasize:
 - auditability and trust
 
 Recommended target scope for this take-home:
-- 3 core views only
-- use sections, drawers, and modals instead of turning every state into a new page
+- 2 routes only: Integrations -> Integration Detail
+- use tabs, row expanders, drawers, and modals instead of turning every state into a new page
 - keep the main loop easy to understand: Sync -> Preview -> Resolve if needed -> Apply -> History
+- favor dense, table-first layouts over card dashboards
 
 ---
 
 ## Recommended UX Target
 
-Keep the product to these 3 views:
+Keep the product to 2 primary routes:
 
 1. Integrations
-- A home list of integrations
-- Each row shows status, last sync time, version, and conflict count if any
+- A full-width integrations table, not cards and not a sidebar
+- Each row shows integration name, status, last sync, last result, conflicts, and version
 - Conflicts should be highly visible here so users instantly know which integration needs attention
+- Include one compact row of controls above the table: search + status filter
 
 2. Integration Detail
-- One page that combines summary, latest preview, and history
-- Sync Now lives here as the main action
-- After Sync Now, show preview results directly in this page rather than sending the user through many intermediate screens
-- History should be a section in this page; individual run details can open in a drawer or modal
+- One page with a compact summary header and tabbed content
+- Sync Now lives here as the primary action
+- Use tabs to keep the UX structured without adding extra pages
+- Recommended tabs: Preview, History, Conflicts
 
-3. Conflict Resolver
-- A dedicated focused view only when conflicts exist
-- Show one conflict at a time or a clear conflict list with progress
-- Let the user compare both sides and resolve safely
-- End with a review-and-confirm step inside the same flow
+Recommended layout patterns:
+- top bar for app title only, no persistent left navigation for integrations
+- full-width table on the list page
+- compact header strip on detail page with integration name, status, last sync, and actions
+- table-first content inside tabs
+- row expanders or drawers for details
+
+Conflict resolution should not become a sprawling separate mini-app.
+Instead:
+- show a conflicts table or list inside the Conflicts tab
+- let users select a conflict and inspect details below the table or in a drawer
+- resolve per field using a simple side-by-side comparison with clear winner selection
 
 What should not become separate full screens:
 - preview details
-- confirm modal as a standalone page
+- confirm as a full page
 - history detail page
-- result page if it can be a strong inline state or modal
+- result page if it can be inline or modal
+- integrations list inside a sidebar
 
 Core happy path:
 1. User sees integrations list and notices sync health/conflicts
 2. User opens one integration
 3. User clicks Sync Now
-4. System loads preview
-5. If there are no conflicts, user reviews summary and applies changes from the detail page
-6. If there are conflicts, user enters the Conflict Resolver, finishes decisions, then confirms
-7. Result is shown and the run appears in history
+4. System loads preview in the Preview tab
+5. If there are no conflicts, user reviews summary and applies changes from the same page
+6. If there are conflicts, user opens the Conflicts tab, resolves them, then confirms
+7. Result is shown inline or in a modal and the run appears in History
 
 This is the simplest complete product shape for the brief.
 
@@ -134,31 +144,37 @@ Integrations to include:
 - Zendesk
 - Intercom
 
-Design the product around 3 core views:
+Design the product around 2 primary routes:
 
 1. Integrations List
-- Show all integrations with status, connection health, attention needed, last sync time, and version.
+- Use a dense, full-width data table rather than cards.
+- Show all integrations with status, connection health, attention needed, last sync time, last result, conflicts, and version.
 - Include search/filtering.
 - Support loading, empty, and error states.
 - If an integration has conflicts, make that highly visible in the row itself.
+- Do not place the integrations list inside a left sidebar.
 
 2. Integration Detail
-- Show overview, current sync health, last run summary, and configuration context.
+- Show a compact summary header with integration name, current sync health, last run summary, and configuration context.
 - Include Sync Now as the primary action.
-- Combine detail, latest preview, and history in this same view.
+- Use simple tabs to organize content: Preview, History, Conflicts.
+- Combine detail, latest preview, and history in this same route.
 - Do not split preview and history into unnecessary extra pages.
 
-3. Latest Preview inside Integration Detail
+3. Preview tab inside Integration Detail
 - This is the most important section of the product.
 - After Sync Now, show what will change before anything is applied.
 - Group changes into Added, Updated, Deleted, and Conflicts.
 - Show counts, scope, and risk clearly.
 - Let users inspect individual records and fields.
 - Make the experience feel like a review checkpoint, not a background operation.
+- Prefer a compact table/list summary over oversized visual widgets.
 - Show examples of realistic changes across User, Door, and Key records so the product does not feel abstract.
 - If there are no conflicts, the user should be able to apply directly from this view.
 
-4. Conflict Resolver
+4. Conflicts tab inside Integration Detail
+- Show a dense list or table of conflicts first.
+- Let the user pick one conflict and inspect its detail below the list or in a drawer.
 - Show side-by-side comparison of Portier value vs integration value.
 - Show provenance or explanation for why something is a conflict.
 - Let users choose a resolution per field.
@@ -166,7 +182,7 @@ Design the product around 3 core views:
 - Make unresolved conflicts impossible to miss.
 - Block final confirmation if required decisions are missing.
 - Ensure the conflict UI works for fields like user.email, user.role, door.status, door.location, key.status, and key.access_end.
-- This should be the only dedicated focused flow outside the main detail page.
+- Avoid novelty layouts; keep it practical and table-oriented.
 
 5. Confirm and Apply
 - Keep confirmation lightweight and integrated.
@@ -181,12 +197,12 @@ Design the product around 3 core views:
 - Include retry or follow-up actions.
 - Prefer inline result treatment or modal feedback over creating another large page.
 
-7. History and Audit inside Integration Detail
-- Show a timeline or list of past sync runs.
+7. History tab inside Integration Detail
+- Show a dense list or table of past sync runs.
 - Include timestamp, source, integration, version, outcome, counts, and drill-down details.
 - Let users inspect what changed and how conflicts were resolved.
 - Make the history feel referenceable and trustworthy.
-- Detailed run inspection can use a drawer or modal.
+- Detailed run inspection can use a row expander, drawer, or modal.
 
 Important states to design explicitly:
 - initial loading
@@ -230,16 +246,18 @@ Non-negotiable UX principles:
 - high clarity in states and outcomes
 
 Visual exploration requirements:
-- Create 3 distinct high-fidelity design directions for the same 3-view product flow
+- Create 3 distinct high-fidelity design directions for the same simple 2-route product flow
 - Each direction should have a different layout approach and information hierarchy, not just different colors
 - Do not default to a cookie-cutter enterprise dashboard
-- Do not use generic left-sidebar-plus-card-grid patterns unless there is a very strong reason
+- Do not use a left sidebar for the integrations list
+- Do not use card-grid dashboard patterns unless there is a very strong reason
 - Make the UI feel intentional, premium, and product-real
 - Use the visual system to support trust, review, and decision-making
+- Keep the UI functional, compact, and implementation-friendly
 
 Output requirements:
-- Produce the full set of screens for each direction: Integrations List, Integration Detail, Conflict Resolver
-- Show how preview, history, confirmation, and result states live within those core views
+- Produce the full set of screens for each direction: Integrations List and Integration Detail
+- Show how Preview, Conflicts, History, confirmation, and result states live within the detail route
 - For each direction, briefly explain what makes its UX approach distinct
 - Keep the design high-fidelity and presentation-ready
 - Optimize for thoughtful product design, not just pretty screens
