@@ -1,2 +1,2 @@
-export { apiContract, syncContract, integrationsContract, historyContract } from './contract/index.js';
-export * from './schema/index.js';
+export { apiContract, syncContract, integrationsContract, historyContract } from './contract/index';
+export * from './schema/index';

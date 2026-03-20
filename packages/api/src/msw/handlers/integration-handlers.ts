@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { mockIntegrations } from '../data/integrations.js'
+import { mockIntegrations } from '../data/integrations'
 
 const BASE_URL = 'https://portier-takehometest.onrender.com'
 

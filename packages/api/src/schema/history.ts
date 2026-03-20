@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IntegrationIdSchema } from './integration.js';
+import { IntegrationIdSchema } from './integration';
 
 export const SyncSourceSchema = z.enum(['user', 'system']);
 export type SyncSource = z.infer<typeof SyncSourceSchema>;

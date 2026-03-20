@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
-import { mockHistory } from '../data/history.js'
-import { mockIntegrations } from '../data/integrations.js'
+import { mockHistory } from '../data/history'
+import { mockIntegrations } from '../data/integrations'
 
 const BASE_URL = 'https://portier-takehometest.onrender.com'
 

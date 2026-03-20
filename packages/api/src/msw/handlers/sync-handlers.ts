@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
-import { mockSyncChanges } from '../data/sync-changes.js'
-import { mockIntegrations } from '../data/integrations.js'
+import { mockSyncChanges } from '../data/sync-changes'
+import { mockIntegrations } from '../data/integrations'
 
 const BASE_URL = 'https://portier-takehometest.onrender.com'
 

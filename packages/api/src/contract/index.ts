@@ -1,7 +1,7 @@
 import { initContract } from '@ts-rest/core';
-import { integrationsContract } from './integrations.js';
-import { historyContract } from './history.js';
-import { syncContract } from './sync.js';
+import { integrationsContract } from './integrations';
+import { historyContract } from './history';
+import { syncContract } from './sync';
 
 const c = initContract();
 

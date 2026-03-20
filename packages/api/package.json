@@ -6,7 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./contract": "./src/contract/index.ts",
-    "./types": "./src/types.ts",
+    "./schema": "./src/schema/index.ts",
     "./msw": "./src/msw/index.ts",
     "./msw/browser": "./src/msw/browser.ts"
   },

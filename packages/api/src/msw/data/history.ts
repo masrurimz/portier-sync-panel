@@ -1,4 +1,4 @@
-import type { SyncHistoryEntry } from '../../schema/index.js'
+import type { SyncHistoryEntry } from '../../schema/index'
 
 // Mock sync history keyed by integration ID (numeric string)
 export const mockHistory: Record<string, SyncHistoryEntry[]> = {

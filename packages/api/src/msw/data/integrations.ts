@@ -1,4 +1,4 @@
-import type { Integration } from '../../schema/index.js'
+import type { Integration } from '../../schema/index'
 
 // Mock integrations with numeric IDs and slugs
 // ID mapping: 1=salesforce, 2=hubspot, 3=stripe, 4=slack, 5=zendesk, 6=intercom
