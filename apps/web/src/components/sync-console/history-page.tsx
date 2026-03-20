@@ -7,7 +7,7 @@ import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
 
 import type { ApplicationId } from "../../lib/api-types";
 import { useSyncConsole } from "../../lib/sync-console-store";
-import { DataPoint, IntegrationLinkSet, LinkButton, PageShell, SurfaceSection } from "./shared";
+import { DataPoint, PageShell, SurfaceSection } from "./shared";
 
 export function HistoryPage({ integrationId }: { integrationId: ApplicationId }) {
   const { integrations, getIntegrationHistory } = useSyncConsole();
@@ -32,11 +32,6 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
       description="Inspect past sync events and audit details, then jump back into review when needed."
       actions={<Badge variant="outline">{history.length} events</Badge>}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <LinkButton to="/integration/$integrationId" params={{ integrationId }}>Back to detail</LinkButton>
-        <IntegrationLinkSet integrationId={integrationId} current="history" />
-      </div>
-
       <Alert>
         <HistoryIcon />
         <AlertTitle>History answers what changed, who approved it, and when.</AlertTitle>

@@ -1,9 +1,20 @@
 import * as React from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@portier-sync/ui/components/alert-dialog";
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { Checkbox } from "@portier-sync/ui/components/checkbox";
 import { Separator } from "@portier-sync/ui/components/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@portier-sync/ui/components/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangleIcon, CheckCircle2Icon, CircleIcon, Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
@@ -11,7 +22,7 @@ import type { ApplicationId } from "../../lib/api-types";
 import type { ReviewItem, ReviewResolution } from "../../features/sync-console/domain/review";
 import { ReviewResolutionForm } from "../../features/sync-console/review/components/review-resolution-form";
 import { useSyncConsole } from "../../lib/sync-console-store";
-import { DataPoint, IntegrationLinkSet, LinkButton, PageShell, SurfaceSection } from "./shared";
+import { DataPoint, PageShell, SurfaceSection } from "./shared";
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
@@ -186,11 +197,6 @@ export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) 
           </>
         }
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <LinkButton to="/integration/$integrationId" params={{ integrationId }}>Back to detail</LinkButton>
-          <IntegrationLinkSet integrationId={integrationId} current="review" />
-        </div>
-
         {/* Summary stats — Est. duration removed (static fake value) */}
         <div className="grid gap-3 md:grid-cols-3">
           <ReviewStat icon={Layers2Icon} label="Total changes" value={String(batch.items.length)} />
@@ -379,19 +385,26 @@ export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) 
                 <Separator />
 
                 <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    onClick={() => setShowConfirm(true)}
-                    disabled={!canApply}
-                    title={
-                      !canApply && unresolvedConflicts > 0
-                        ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? "s" : ""} before committing`
-                        : !canApply
-                          ? "Select at least one change to commit"
-                          : undefined
-                    }
-                  >
-                    Commit {totalToApply} update{totalToApply !== 1 ? "s" : ""}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      {/* span needed so Tooltip can attach to a disabled button */}
+                      <span tabIndex={canApply ? undefined : 0}>
+                        <Button
+                          onClick={() => setShowConfirm(true)}
+                          disabled={!canApply}
+                        >
+                          Commit {totalToApply} update{totalToApply !== 1 ? "s" : ""}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!canApply && (
+                      <TooltipContent>
+                        {unresolvedConflicts > 0
+                          ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? "s" : ""} before committing`
+                          : "Select at least one change to commit"}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                 </div>
               </SurfaceSection>
             </div>
@@ -399,14 +412,11 @@ export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) 
         </div>
       </PageShell>
 
-      {/* ── Confirmation modal (no Dialog in ui package — inline overlay) ── */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop — intentionally non-dismissable to prevent accidental close */}
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-            <h2 className="text-lg font-semibold">Commit changes</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Commit changes</AlertDialogTitle>
+            <AlertDialogDescription>
               You are about to apply{" "}
               <span className="font-medium text-foreground">{totalToApply} change{totalToApply !== 1 ? "s" : ""}</span>
               {resolvedConflicts > 0 && selectedSafe > 0 && (
@@ -419,19 +429,15 @@ export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) 
               {resolvedConflicts === 0 && selectedSafe > 0 && (
                 <> — {selectedSafe} safe update{selectedSafe !== 1 ? "s" : ""}</>
               )}
-              . <span className="font-medium text-foreground">This cannot be undone.</span>
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowConfirm(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleConfirmApply}>
-                Commit changes
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+              {" "}. <span className="font-medium text-foreground">This cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmApply}>Commit changes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

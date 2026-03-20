@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Badge } from "@portier-sync/ui/components/badge";
-import { Button, buttonVariants } from "@portier-sync/ui/components/button";
+import { buttonVariants } from "@portier-sync/ui/components/button";
 import {
   Card,
   CardAction,
@@ -176,9 +176,6 @@ export function IntegrationLinkSet({
           {link.label}
         </Link>
       ))}
-      <Button variant="ghost" disabled>
-        Settings
-      </Button>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, R
 import type { ApplicationId } from "../../lib/api-types";
 import { formatRelativeTime } from "../../lib/api-types";
 import { useSyncConsole } from "../../lib/sync-console-store";
-import { DataPoint, IntegrationLinkSet, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "./shared";
+import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "./shared";
 
 export function DetailPage({ integrationId }: { integrationId: ApplicationId }) {
   const {
@@ -70,11 +70,6 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
         </>
       }
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <LinkButton to="/">All integrations</LinkButton>
-        <IntegrationLinkSet integrationId={integrationId} current="overview" />
-      </div>
-
       <Alert variant={syncError ? "destructive" : "default"}>
         <ShieldCheckIcon />
         <AlertTitle>{syncError ? syncError.title : health.reliability}</AlertTitle>
