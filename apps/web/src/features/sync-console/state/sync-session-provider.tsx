@@ -23,7 +23,7 @@ interface SyncSessionContextValue {
   reviewBatches: Record<IntegrationId, ReviewBatch>;
   syncErrors: Partial<Record<IntegrationId, SyncFetchError>>;
   syncingId: IntegrationId | null;
-  syncNow: (integrationId: IntegrationId) => Promise<void>;
+  syncNow: (integrationId: IntegrationId) => Promise<ReviewBatch>;
   updateReviewDecision: (integrationId: IntegrationId, itemId: string, resolution: ReviewResolution) => void;
   toggleReviewSelection: (integrationId: IntegrationId, itemId: string) => void;
   approveSafeChanges: (integrationId: IntegrationId) => void;
@@ -43,13 +43,48 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
   const { data: integrationsData = [] } = useQuery(integrationsListQueryOptions());
 
   React.useEffect(() => {
-    if (integrations.length === 0 && integrationsData.length > 0) {
-      setIntegrations(integrationsData);
-    }
-  }, [integrations.length, integrationsData]);
+    if (integrationsData.length === 0) return;
+    setIntegrations((current) => {
+      const currentById = new Map(current.map((item) => [item.id, item]));
+      let changed = current.length !== integrationsData.length;
+      const next = integrationsData.map((remote) => {
+        const local = currentById.get(remote.id);
+        if (!local) {
+          changed = true;
+          return remote;
+        }
+
+        const keepLocalMutation = syncingId === remote.id || reviewBatches[remote.id] !== undefined || syncErrors[remote.id] !== undefined;
+        const merged = keepLocalMutation
+          ? {
+              ...remote,
+              status: local.status,
+              version: local.version,
+              lastSynced: local.lastSynced,
+            }
+          : remote;
+
+        if (
+          merged.id !== local.id ||
+          merged.slug !== local.slug ||
+          merged.name !== local.name ||
+          merged.icon !== local.icon ||
+          merged.status !== local.status ||
+          merged.version !== local.version ||
+          merged.lastSynced?.getTime() !== local.lastSynced?.getTime() ||
+          merged.totalRecords !== local.totalRecords ||
+          merged.lastSyncDuration !== local.lastSyncDuration
+        ) {
+          changed = true;
+        }
+        return merged;
+      });
+      return changed ? next : current;
+    });
+  }, [integrationsData, reviewBatches, syncErrors, syncingId]);
 
   const syncNow = React.useCallback(
-    async (integrationId: IntegrationId) => {
+    async (integrationId: IntegrationId): Promise<ReviewBatch> => {
       const integration = findIntegration(integrations, integrationId);
 
       if (!integration) {
@@ -90,6 +125,7 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
         } else {
           toast.success(`${integration.name} preview fetched successfully.`);
         }
+        return batch;
       } catch (error) {
         const normalized = normalizeThrownError(error);
         setSyncErrors((current) => ({ ...current, [integrationId]: normalized }));

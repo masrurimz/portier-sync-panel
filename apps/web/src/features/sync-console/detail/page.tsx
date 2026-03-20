@@ -59,16 +59,12 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const handleSyncNow = async () => {
     try {
-      await syncNow(integrationId);
-      // Re-fetch batch from state after sync completes
-      const freshBatch = reviewBatches[integrationId];
-      if (freshBatch) {
-        setFetchResult({
-          changeCount: freshBatch.items.length,
-          conflictCount: freshBatch.items.filter((i) => i.conflict).length,
-          appName: freshBatch.applicationName,
-        });
-      }
+      const freshBatch = await syncNow(integrationId);
+      setFetchResult({
+        changeCount: freshBatch.items.length,
+        conflictCount: freshBatch.items.filter((i) => i.conflict).length,
+        appName: freshBatch.applicationName,
+      });
     } catch {
       setFetchResult(null);
       // toast feedback is handled in the sync session; stay on the detail page on failure.
