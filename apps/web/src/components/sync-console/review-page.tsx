@@ -385,26 +385,26 @@ export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) 
                 <Separator />
 
                 <div className="flex flex-wrap justify-end gap-2">
-                  <Tooltip>
-                    <TooltipTrigger>
-                      {/* span needed so Tooltip can attach to a disabled button */}
-                      <span tabIndex={canApply ? undefined : 0}>
-                        <Button
-                          onClick={() => setShowConfirm(true)}
-                          disabled={!canApply}
-                        >
-                          Commit {totalToApply} update{totalToApply !== 1 ? "s" : ""}
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    {!canApply && (
-                      <TooltipContent>
-                        {unresolvedConflicts > 0
-                          ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? "s" : ""} before committing`
-                          : "Select at least one change to commit"}
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* span needed so Tooltip can attach to a disabled button */}
+                    <span tabIndex={canApply ? undefined : 0} className="inline-block">
+                      <Button
+                        onClick={() => setShowConfirm(true)}
+                        disabled={!canApply}
+                      >
+                        Commit {totalToApply} update{totalToApply !== 1 ? "s" : ""}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!canApply && (
+                    <TooltipContent>
+                      {unresolvedConflicts > 0
+                        ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? "s" : ""} before committing`
+                        : "Select at least one change to commit"}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
                 </div>
               </SurfaceSection>
             </div>
