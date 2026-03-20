@@ -1,6 +1,7 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 
 import { AppQueryProvider } from "./app/providers/query-provider";
+import { MSWProvider } from "./app/providers/msw-provider";
 import { AppSyncSessionProvider } from "./app/providers/sync-session-provider";
 import Loader from "./components/loader";
 
@@ -16,9 +17,11 @@ export const getRouter = () => {
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
     Wrap: ({ children }) => (
-      <AppQueryProvider>
-        <AppSyncSessionProvider>{children}</AppSyncSessionProvider>
-      </AppQueryProvider>
+      <MSWProvider>
+        <AppQueryProvider>
+          <AppSyncSessionProvider>{children}</AppSyncSessionProvider>
+        </AppQueryProvider>
+      </MSWProvider>
     ),
   });
   return router;

@@ -6,13 +6,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./contract": "./src/contract/index.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/types.ts",
+    "./msw": "./src/msw/index.ts",
+    "./msw/browser": "./src/msw/browser.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@ts-rest/core": "^3.52.1",
+    "msw": "^2.12.13",
     "zod": "catalog:"
   },
   "devDependencies": {

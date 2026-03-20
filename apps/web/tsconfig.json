@@ -24,7 +24,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@portier-sync/ui/*": ["../../packages/ui/src/*"],
-      "@portier-sync/api": ["../../packages/api/src/index.ts"]
+      "@portier-sync/api": ["../../packages/api/src/index.ts"],
+      "@portier-sync/api/msw": ["../../packages/api/src/msw/index.ts"],
+      "@portier-sync/api/msw/browser": ["../../packages/api/src/msw/browser.ts"]
     }
   }
 }

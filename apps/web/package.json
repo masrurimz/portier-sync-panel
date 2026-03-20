@@ -23,6 +23,7 @@
     "@ts-rest/react-query": "^3.52.1",
     "dotenv": "catalog:",
     "lucide-react": "catalog:",
+    "msw": "^2.12.13",
     "next-themes": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

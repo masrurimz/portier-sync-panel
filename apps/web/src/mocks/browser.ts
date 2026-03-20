@@ -1,0 +1,1 @@
+export { worker } from '@portier-sync/api/msw/browser'
