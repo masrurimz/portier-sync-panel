@@ -140,53 +140,54 @@ Fields use dot-notation: `{entity}.{field}`
 
 ---
 
-## Reference Design
+## UX Direction
 
-### Pages/Views
+The provided Figma site is useful as a scope reference, but it is too minimal for a high-trust sync workflow.
 
-1. **Integrations List** (`/`)
-   - Table of all integrations
+Use it only as a baseline for page coverage. The product direction for this repo is an operations-oriented sync console with stronger review, conflict handling, and auditability.
+
+### Recommended Views
+
+1. **Integrations Overview** (`/`)
+   - Searchable and filterable integrations table
    - Status indicators: Synced, Syncing, Conflict, Error
-   - Metadata: Last sync time, Version
-   - Search/filter capabilities
+   - Pending review count per integration
+   - Priority review queue for integrations requiring attention
 
 2. **Integration Detail** (`/integration/:id`)
-   - Integration summary card
-   - "Sync Now" action button
-   - Quick stats: Total Records, Last Sync Duration, Last Synced
-   - Link to Sync History
+   - Integration summary with status, version, and Sync Now action
+   - Reliability banner for source/API health
+   - Metrics for records, pending updates, unresolved conflicts, and sync duration
+   - Incoming changes preview
+   - Tabs for Overview, Review Queue, History, Settings
 
-3. **Sync History** (`/integration/:id/history`)
-   - Accordion-style history list
-   - Columns: Timestamp, Source (user/system), Version, Summary
-   - "View Changes" action for each entry
+3. **Review Sync Changes** (`/integration/:id/review`)
+   - Triggered after Sync Now
+   - Separate safe updates from true conflicts
+   - Left-side grouping by entity type or severity
+   - Focused field-level comparison with local vs external values
+   - Per-field resolution: keep local, accept external, or edit merged value
+   - Sticky footer with unresolved count and final apply action
 
-4. **Review Sync Changes** (`/integration/:id/review`)
-   - Triggered after "Sync Now"
-   - Summary stats: Added, Updated, Deleted, Est. Duration
-   - Select/deselect individual changes
-   - Side-by-side comparison (current vs new value)
-   - Approve/Cancel actions
-
-5. **Sync Success** (modal/redirect)
-   - Confirmation of successful sync
-   - New version number
-   - Link to history
+4. **Sync History / Audit** (`/integration/:id/history`)
+   - Filterable timeline or expandable event list
+   - Columns or summary fields for timestamp, actor/source, version, result, and changed fields
+   - Expanded event state for before/after details and approval notes
 
 ### UI Components Needed
 
-From reference design:
-- **Table** - For integrations list
-- **Card** - For integration summary
-- **Badge** - Status indicators (Synced, Conflict, Error, Syncing)
-- **Accordion** - For sync history
-- **Dialog/Modal** - For change details, confirmations
-- **Button** - Actions (Sync Now, Approve, Cancel)
-- **Checkbox** - For selecting changes
-- **Tabs** - Potentially for different views
-- **Diff View** - Side-by-side comparison (custom)
+- **Table** - Integrations overview and compact audit summaries
+- **Card** - Summary metrics and health surfaces
+- **Badge** - Status and severity indicators
+- **Tabs** - Overview, review queue, history, settings
+- **Button** - Sync, retry, approve, export actions
+- **Checkbox / radio controls** - Field-level resolution actions
+- **Diff View** - Focused comparison for local vs external values
 - **Skeleton** - Loading states
-- **Toast** - Success/error notifications (already have sonner)
+- **Toast** - Async confirmations and errors
+- **Banner / alert surface** - Configuration and upstream failure states
+
+For layout, interaction, and wireframe guidance, treat `docs/UI_PATTERNS.md` as the source of truth.
 
 ---
 

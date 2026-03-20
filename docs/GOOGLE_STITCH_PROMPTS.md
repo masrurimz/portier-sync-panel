@@ -1,89 +1,212 @@
-# Google Stitch Prompt (Product Direction Only)
+# Google Stitch Prompt
 
-Use this when prompting Stitch. It defines what the product must do and how users should experience it, without dictating layout or visual style.
+Use this prompt to generate a high-fidelity direction that matches the intended product behavior and UX posture for Portier.
+
+This prompt is intentionally opinionated. It should produce an operations-focused sync console, not a generic SaaS dashboard.
+
+---
 
 ## Primary Prompt
 
 ```text
-Design a high-fidelity web app called "Portier Integration Sync Panel".
+Design a high-fidelity web application called "Portier Sync Console".
 
-Do not optimize for flashy visuals. Optimize for UX clarity, trust, and decision-making in a sync workflow.
+This is a B2B operations interface for reviewing and approving integration sync changes across systems like Salesforce, HubSpot, Stripe, Slack, Zendesk, and Intercom.
 
-Product purpose:
-- Manage sync across multiple integrations (Salesforce, HubSpot, Stripe, Slack, Zendesk, Intercom)
-- Let users run sync, review incoming changes, resolve conflicts safely, and inspect history
+Do not design this as a minimalist productivity app or a marketing dashboard.
+Design it as a high-trust operational review console.
 
-Core problem to solve:
-- The same field can be changed in both systems at the same time
-- The app must not silently choose a winner when conflict is ambiguous
-- Users must be able to review, resolve, and confirm intentionally
+Core product problem:
+Data can change in both Portier and an external system at the same time. When that happens, the UI must not silently choose a winner. The user must be able to review differences, understand the risk, and make an explicit resolution.
 
 Concrete conflict example:
-- Portier user email: john@company.com
-- HubSpot user email: j.smith@newdomain.com
-- User must choose which value to keep
+- Local value: john@company.com
+- External value: j.smith@newdomain.com
+- The system cannot assume which value is correct
+- The user must choose keep local, accept external, or edit a merged value
 
-Data model context:
-- User fields: name, email, phone, role, status
-- Door fields: name, location, device_id, status, battery_level, last_seen
-- Key fields: key_type, access_start, access_end, status
+Primary design goals:
+- safe
+- transparent
+- reviewable
+- auditable
+- operationally clear
 
-Required product areas from the brief:
-1) Integrations list
-2) Integration sync detail
-3) Sync history and versioning
-4) Conflict resolution
+Information architecture to design:
 
-Required UX behaviors:
-- Sync Now is the main trigger
-- Show preview of changes before apply
-- Show field-level conflicts with side-by-side values
-- Allow per-field conflict decisions
-- Make merge/apply action explicit and clear
-- Make unresolved conflicts obvious
-- Keep users oriented about what changed, what is pending, and what is final
+1. Integrations overview
+- A top-level summary of integration health
+- Search and filtering
+- A priority review queue for integrations that need attention
+- A table of integrations with:
+  - name
+  - status
+  - pending review count
+  - last sync time
+  - version
+  - action
 
-Required system states to design clearly:
-- loading
-- syncing in progress
+2. Integration detail
+- Integration identity, status, version
+- Primary Sync Now action
+- Source health / reliability banner
+- Metrics such as total records, pending updates, unresolved conflicts, sync duration
+- Incoming changes preview
+- Tabs for Overview, Review Queue, History, Settings
+
+3. Review and conflict resolution
+- Distinguish safe changes from true conflicts
+- Left-side navigation or grouping by entity type: User, Door, Key
+- Main focused comparison pane for the selected field
+- Show local value and external value side by side
+- Show supporting metadata such as change type, field path, modified source, timestamp, or actor if available
+- Per-field actions:
+  - Keep local
+  - Accept external
+  - Edit merged value
+- Sticky footer showing unresolved conflict count and final apply action
+
+4. History and audit
+- Timeline or expandable audit list
+- Each event should show:
+  - timestamp
+  - actor or trigger source
+  - result
+  - version
+  - changed fields summary
+- Expanded state should reveal before/after context when appropriate
+
+Required product states to show clearly:
+- synced
+- syncing
+- pending review
+- conflict
 - no changes found
-- conflicts present
-- unresolved conflicts
 - success
-- failure with actionable retry
+- configuration issue
+- internal server error
+- provider unavailable / gateway failure
 
-Error handling states to include:
-- 4xx (configuration/request issues)
-- 500 (internal error)
-- 502 (integration provider unavailable)
+Error handling expectations:
+- 4xx should feel like a configuration or request problem with a clear next step
+- 500 should feel like an internal system failure, with reassurance that no silent apply happened
+- 502 should feel like an upstream provider outage, with safe retry messaging
 
-API constraints:
-- Endpoint: https://portier-takehometest.onrender.com/api/v1/data/sync
-- Sync Now calls this API
-- Data for preview/conflict/confirmation comes from this API response
-- Other data can be mocked
+Data context:
+Entities in the system include:
+- User: id, name, email, phone, role, status, created_at, updated_at
+- Door: id, name, location, device_id, status, battery_level, last_seen, created_at
+- Key: id, user_id, door_id, key_type, access_start, access_end, status, created_at
 
-Output expectation:
-- Provide one cohesive, implementation-friendly UI direction
-- Keep flow simple and practical
-- Prioritize usability and functional clarity over decorative complexity
-- Ensure the design supports safe, transparent, reviewable, auditable sync operations
+UI direction:
+- dark, operations-console aesthetic
+- dense but readable
+- high contrast
+- restrained accent colors
+- serious, trustworthy tone
+- information-rich layouts over empty decorative whitespace
+
+Avoid:
+- generic AI SaaS look
+- purple gradient hero styling
+- floating glassmorphism cards with low information density
+- over-minimal layouts that hide context needed for approval
+
+Design priorities:
+1. Decision clarity over visual novelty
+2. Risk visibility over decorative simplicity
+3. Auditability over cleverness
+4. Fast scanning for operators managing multiple integrations
+
+Output expectations:
+- Produce a cohesive multi-screen direction
+- Include overview, integration detail, review/conflict, and history views
+- Make the review screen the strongest and most distinctive surface
+- Use layout and hierarchy to communicate trust and operational seriousness
 ```
 
-## Refinement Prompt (Optional)
+---
 
-Use this after Stitch generates the first result.
+## Refinement Prompt: Make It More Operational
+
+Use this if the first result is too decorative or too generic.
 
 ```text
-Refine this design to be simpler and more functional.
+Refine this design to feel more like a mission-critical operations console.
 
-Reduce visual noise and wasted space.
-Improve navigation clarity and decision flow for sync and conflict resolution.
-Keep all required functionality, but remove unnecessary complexity.
+Improve:
+- status visibility
+- prioritization of risky items
+- readability of field-level comparison
+- distinction between safe updates and conflicts
+- audit/history clarity
 
-Focus on:
-- better readability of change review
-- clearer conflict decision points
-- clearer status and error communication
-- faster path from Sync Now to confident apply
+Reduce:
+- decorative chrome
+- oversized empty cards
+- unnecessary visual effects
+- ambiguous labels
+
+Make the screen feel trustworthy under error, not just attractive under success.
+```
+
+---
+
+## Refinement Prompt: Strengthen Conflict Review
+
+Use this if the review page still looks like a generic checklist.
+
+```text
+Refine the review and conflict resolution screen.
+
+Requirements:
+- separate safe changes from conflicts
+- add a left-side grouping rail by entity type or risk bucket
+- make the focused comparison pane larger and more structured
+- show local vs external values with clear provenance
+- provide explicit resolution controls for each field
+- add a sticky footer with unresolved count and final apply action
+
+The user should feel like they are resolving a controlled sync batch, not checking random rows in a table.
+```
+
+---
+
+## Refinement Prompt: Increase Auditability
+
+Use this if the history screen is too simple.
+
+```text
+Refine the history view to feel like an audit surface instead of a plain activity table.
+
+Add:
+- event result states
+- actor or trigger type
+- changed field counts
+- expandable before/after context
+- stronger version hierarchy
+- filtering controls for date, actor, and result
+
+Keep it dense, readable, and serious.
+```
+
+---
+
+## Short Prompt Variant
+
+Use this when you want a compact version.
+
+```text
+Design a dark, high-trust B2B sync console for Portier.
+
+The product manages bidirectional integration sync across tools like Salesforce and HubSpot. The core workflow is reviewing incoming changes, resolving ambiguous conflicts at field level, and approving a sync batch with clear audit history.
+
+Required views:
+- integrations overview with status, pending review count, version, and health
+- integration detail with Sync Now, metrics, and incoming changes preview
+- conflict review with local vs external values, per-field resolution, and sticky apply footer
+- history/audit timeline with version, actor, result, and changed fields
+
+Make it feel operational, dense, trustworthy, and implementation-friendly.
+Avoid generic SaaS dashboard styling.
 ```

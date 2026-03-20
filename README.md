@@ -176,8 +176,9 @@ import { Card } from "@portier-sync/ui/components/card";
 
 ## Documentation
 
-- [Project Context](./docs/PROJECT_CONTEXT.md) - Full API docs and requirements
-- [UI Patterns](./docs/UI_PATTERNS.md) - Design patterns and component guidelines
+- [Project Context](./docs/PROJECT_CONTEXT.md) - API constraints, system scope, and implementation context
+- [UI Patterns](./docs/UI_PATTERNS.md) - Operations-console UX direction, interaction guidance, and wireframes
+- [Google Stitch Prompt](./docs/GOOGLE_STITCH_PROMPTS.md) - Prompt set for generating the updated design direction
 
 ## License
 
