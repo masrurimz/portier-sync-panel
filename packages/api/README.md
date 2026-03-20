@@ -40,9 +40,14 @@ Each endpoint declares only metadata + existing schema references:
 `client.ts` config:
 - `baseURL: https://portier-takehometest.onrender.com`
 - `schema: fetchSchema`
+- `defaultError: ApiErrorResponseSchema`
 - `throw: true`
 
-With `throw: true`, failed responses throw `ApiError` (`BetterFetchError`) so TanStack Query receives errors natively via thrown promises.
+`defaultError` standardizes API error inference around our error schema while
+preserving better-fetch base error fields (`status`, `statusText`).
+
+With `throw: true`, failed responses throw `ApiError` (`BetterFetchError`) so
+TanStack Query receives errors natively via thrown promises.
 
 ## QueryOptions convention
 
