@@ -8,14 +8,17 @@
     "./contract": "./src/contract/index.ts",
     "./schema": "./src/schema/index.ts",
     "./msw": "./src/msw/index.ts",
-    "./msw/browser": "./src/msw/browser.ts"
+    "./msw/browser": "./src/msw/browser.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@ts-rest/core": "^3.52.1",
-    "msw": "^2.12.13",
+    "@ts-rest/core": "catalog:",
+    "@ts-rest/react-query": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "msw": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
