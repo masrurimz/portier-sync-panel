@@ -68,29 +68,7 @@ import { createApiClient } from '@portier-sync/api/client'
 export const tsr = createApiClient('https://portier-takehometest.onrender.com')
 ```
 
-### Queries — hook pattern
-
-ts-rest exposes hooks directly on each contract route. Use `useSuspenseQuery`
-to push loading state to a Suspense boundary and keep components data-only.
-
-```tsx
-import { tsr } from '@/lib/api'
-
-// list
-const { data } = tsr.integrations.list.useSuspenseQuery({})
-
-// single — path params go in queryData
-const { data } = tsr.integrations.get.useSuspenseQuery({
-  queryData: { params: { id: '1' } },
-})
-
-// history for an integration
-const { data } = tsr.history.list.useSuspenseQuery({
-  queryData: { params: { id: integrationId } },
-})
-```
-
-### Queries — queryOptions pattern
+### Queries — queryOptions pattern (recommended)
 
 TanStack Query encourages defining query options outside components so the same
 descriptor can be passed to `useSuspenseQuery`, `prefetchQuery`,
@@ -98,14 +76,18 @@ descriptor can be passed to `useSuspenseQuery`, `prefetchQuery`,
 
 ts-rest does not expose a native `.queryOptions()` factory — it is hook-first.
 To follow the colocation pattern, compose with the raw `.query` fetcher and
-TanStack's `queryOptions()` helper. The trade-off is that you manage query keys
-yourself instead of relying on ts-rest's internal key derivation.
+TanStack's `queryOptions()` helper. You manage query keys yourself.
+
+**Why this is required:** ts-rest's `useSuspenseQuery` hooks manage keys internally,
+but `invalidateQueries` is not wrapped per-route. You cannot invalidate a query
+you don't have the key for. Therefore, for any data that needs invalidation after
+mutations, you must own the key via queryOptions.
 
 ```ts
+// apps/web/src/lib/queries/integrations.ts
 import { queryOptions } from '@tanstack/react-query'
 import { tsr } from '@/lib/api'
 
-// Define once, reference everywhere
 export const integrationsListQueryOptions = () =>
   queryOptions({
     queryKey: ['integrations'],
@@ -127,14 +109,26 @@ export const integrationHistoryQueryOptions = (id: string) =>
 
 ```tsx
 // in a component
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { integrationDetailQueryOptions } from '@/lib/queries/integrations'
+
 const { data } = useSuspenseQuery(integrationDetailQueryOptions(id))
-
-// prefetch in a route loader
-await queryClient.prefetchQuery(integrationsListQueryOptions())
-
-// invalidate after mutation
-await queryClient.invalidateQueries(integrationDetailQueryOptions(id))
 ```
+
+### Hook pattern (only for static data)
+
+The `tsr.route.useSuspenseQuery({})` hooks are fine for data that never needs
+manual invalidation — truly static reference data. Do not use for any data
+that might be mutated and need cache refresh.
+
+```tsx
+// OK for static data only
+const { data } = tsr.integrations.list.useSuspenseQuery({})
+
+// WRONG — this creates an orphaned cache entry you cannot invalidate
+const { data } = tsr.integrations.get.useSuspenseQuery({ queryData: { params: { id } } })
+```
+
 
 ### Mutations
 
