@@ -1,4 +1,4 @@
-import type { ApplicationId, Integration } from "../../../lib/api-types";
+import type { Integration, IntegrationId } from "@portier-sync/api";
 import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations, integrationHealthSeed } from "../domain/integration";
 import { conflictItems, getPreviewLines, selectedItems, type ReviewBatch } from "../domain/review";
 import type { ConsoleMetric } from "../domain/integration";
@@ -32,7 +32,7 @@ export function selectIntegrationMetrics({
 }: {
   integration: Integration;
   batch: ReviewBatch;
-  integrationId: ApplicationId;
+  integrationId: IntegrationId;
   error: SyncFetchError | null;
 }) {
   return buildIntegrationMetrics({

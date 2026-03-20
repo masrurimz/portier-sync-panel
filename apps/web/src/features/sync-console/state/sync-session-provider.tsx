@@ -1,16 +1,14 @@
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import type { ApplicationId, Integration, SyncHistoryEntry } from "../../../lib/api-types";
-import { createInitialIntegrations, findIntegration, integrationHealthSeed } from "../domain/integration";
-import { buildAppliedHistoryEntry, createInitialHistories } from "../domain/history";
+import { integrationsListQueryOptions, type Integration, type IntegrationId, type SyncHistoryEntry } from "@portier-sync/api";
+import { findIntegration, integrationHealthSeed } from "../domain/integration";
+import { buildAppliedHistoryEntry } from "../domain/history";
 import {
   applyStatusFromBatch,
   buildBatchFromApi,
   conflictItems,
-  createInitialPreviewMap,
-  createInitialReviewBatches,
   selectedItems,
   type ReviewBatch,
   type ReviewItem,
@@ -21,31 +19,43 @@ import { syncPreviewQueryKey, syncClient } from "../api/sync-preview.query";
 
 interface SyncSessionContextValue {
   integrations: Integration[];
-  historyByIntegration: Record<ApplicationId, SyncHistoryEntry[]>;
-  reviewBatches: Record<ApplicationId, ReviewBatch>;
-  syncErrors: Partial<Record<ApplicationId, SyncFetchError>>;
-  syncingId: ApplicationId | null;
-  syncNow: (integrationId: ApplicationId) => Promise<void>;
-  updateReviewDecision: (integrationId: ApplicationId, itemId: string, resolution: ReviewResolution) => void;
-  toggleReviewSelection: (integrationId: ApplicationId, itemId: string) => void;
-  approveSafeChanges: (integrationId: ApplicationId) => void;
-  applyReview: (integrationId: ApplicationId) => boolean;
+  historyByIntegration: Record<IntegrationId, SyncHistoryEntry[]>;
+  reviewBatches: Record<IntegrationId, ReviewBatch>;
+  syncErrors: Partial<Record<IntegrationId, SyncFetchError>>;
+  syncingId: IntegrationId | null;
+  syncNow: (integrationId: IntegrationId) => Promise<void>;
+  updateReviewDecision: (integrationId: IntegrationId, itemId: string, resolution: ReviewResolution) => void;
+  toggleReviewSelection: (integrationId: IntegrationId, itemId: string) => void;
+  approveSafeChanges: (integrationId: IntegrationId) => void;
+  applyReview: (integrationId: IntegrationId) => boolean;
 }
 
 const SyncSessionContext = React.createContext<SyncSessionContextValue | null>(null);
 
 export function SyncSessionProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [integrations, setIntegrations] = React.useState<Integration[]>(() => createInitialIntegrations());
-  const [reviewBatches, setReviewBatches] = React.useState<Record<ApplicationId, ReviewBatch>>(() => createInitialReviewBatches());
-  const [historyByIntegration, setHistoryByIntegration] = React.useState<Record<ApplicationId, SyncHistoryEntry[]>>(() => createInitialHistories());
-  const [syncErrors, setSyncErrors] = React.useState<Partial<Record<ApplicationId, SyncFetchError>>>({});
-  const [, setActivePreviewId] = React.useState<Record<ApplicationId, string | null>>(() => createInitialPreviewMap());
-  const [syncingId, setSyncingId] = React.useState<ApplicationId | null>(null);
+  const [integrations, setIntegrations] = React.useState<Integration[]>([]);
+  const [reviewBatches, setReviewBatches] = React.useState<Record<IntegrationId, ReviewBatch>>({});
+  const [historyByIntegration, setHistoryByIntegration] = React.useState<Record<IntegrationId, SyncHistoryEntry[]>>({});
+  const [syncErrors, setSyncErrors] = React.useState<Partial<Record<IntegrationId, SyncFetchError>>>({});
+  const [, setActivePreviewId] = React.useState<Record<IntegrationId, string | null>>({});
+  const [syncingId, setSyncingId] = React.useState<IntegrationId | null>(null);
+  const { data: integrationsData = [] } = useQuery(integrationsListQueryOptions());
+
+  React.useEffect(() => {
+    if (integrations.length === 0 && integrationsData.length > 0) {
+      setIntegrations(integrationsData);
+    }
+  }, [integrations.length, integrationsData]);
 
   const syncNow = React.useCallback(
-    async (integrationId: ApplicationId) => {
+    async (integrationId: IntegrationId) => {
       const integration = findIntegration(integrations, integrationId);
+
+      if (!integration) {
+        toast.error("Integration not found", { description: "Could not find integration to sync." });
+        throw new Error(`Integration ${integrationId} not found`);
+      }
 
       setSyncingId(integrationId);
       setSyncErrors((current) => ({ ...current, [integrationId]: undefined }));
@@ -53,7 +63,7 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
 
       try {
         const result = await syncClient.preview({
-          query: { application_id: integrationId },
+          query: { application_id: integration.slug },
         });
         if (result.status !== 200) {
           throw normalizeApiError(result.status, result.body);
@@ -93,42 +103,65 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
     [integrations, queryClient],
   );
 
-  const updateReviewDecision = React.useCallback((integrationId: ApplicationId, itemId: string, resolution: ReviewResolution) => {
-    setReviewBatches((current) => ({
-      ...current,
-      [integrationId]: {
-        ...current[integrationId],
-        items: current[integrationId].items.map((item) => (item.id === itemId ? { ...item, resolution, selected: true } : item)),
-      },
-    }));
+  const updateReviewDecision = React.useCallback((integrationId: IntegrationId, itemId: string, resolution: ReviewResolution) => {
+    setReviewBatches((current) => {
+      const existing = current[integrationId];
+      if (!existing) return current;
+      return {
+        ...current,
+        [integrationId]: {
+          ...existing,
+          items: existing.items.map((item) => (item.id === itemId ? { ...item, resolution, selected: true } : item)),
+        },
+      };
+    });
   }, []);
 
-  const toggleReviewSelection = React.useCallback((integrationId: ApplicationId, itemId: string) => {
-    setReviewBatches((current) => ({
-      ...current,
-      [integrationId]: {
-        ...current[integrationId],
-        items: current[integrationId].items.map((item) => (item.id === itemId ? { ...item, selected: !item.selected } : item)),
-      },
-    }));
+  const toggleReviewSelection = React.useCallback((integrationId: IntegrationId, itemId: string) => {
+    setReviewBatches((current) => {
+      const existing = current[integrationId];
+      if (!existing) return current;
+      return {
+        ...current,
+        [integrationId]: {
+          ...existing,
+          items: existing.items.map((item) => (item.id === itemId ? { ...item, selected: !item.selected } : item)),
+        },
+      };
+    });
   }, []);
 
-  const approveSafeChanges = React.useCallback((integrationId: ApplicationId) => {
-    setReviewBatches((current) => ({
-      ...current,
-      [integrationId]: {
-        ...current[integrationId],
-        items: current[integrationId].items.map((item) => (item.conflict ? item : { ...item, selected: true, resolution: { kind: "external" } })),
-      },
-    }));
+  const approveSafeChanges = React.useCallback((integrationId: IntegrationId) => {
+    setReviewBatches((current) => {
+      const existing = current[integrationId];
+      if (!existing) return current;
+      return {
+        ...current,
+        [integrationId]: {
+          ...existing,
+          items: existing.items.map((item) => (item.conflict ? item : { ...item, selected: true, resolution: { kind: "external" } })),
+        },
+      };
+    });
     toast.success("Safe changes marked for approval.");
   }, []);
 
   const applyReview = React.useCallback(
-    (integrationId: ApplicationId) => {
+    (integrationId: IntegrationId) => {
       const batch = reviewBatches[integrationId];
-      const selected = selectedItems(batch.items);
       const integration = findIntegration(integrations, integrationId);
+
+      if (!integration) {
+        toast.error("Integration not found", { description: "Could not find integration to apply review." });
+        return false;
+      }
+
+      if (!batch) {
+        toast.error("No review batch", { description: "No preview batch available to apply." });
+        return false;
+      }
+
+      const selected = selectedItems(batch.items);
       const unresolved = selected.filter((item) => item.conflict && !item.resolution.kind);
 
       if (selected.length === 0) {
@@ -143,7 +176,7 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
 
       setHistoryByIntegration((current) => ({
         ...current,
-        [integrationId]: [buildAppliedHistoryEntry({ integrationId, version: batch.versionAfter, selectedItems: selected }), ...current[integrationId]],
+        [integrationId]: [buildAppliedHistoryEntry({ integrationId, version: batch.versionAfter, selectedItems: selected }), ...(current[integrationId] ?? [])],
       }));
 
       setIntegrations((current) =>
