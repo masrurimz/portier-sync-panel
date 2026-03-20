@@ -1,3 +1,5 @@
+import { integrationDetailQueryOptions } from "@portier-sync/api";
+import { buttonVariants } from "@portier-sync/ui/components/button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -6,26 +8,28 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@portier-sync/ui/components/breadcrumb";
-import { buttonVariants } from "@portier-sync/ui/components/button";
-import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { StatusBadge } from "../features/sync-console";
-import type { ApplicationId } from "../lib/api-types";
-import { getIntegrationById } from "../lib/api-types";
+import { StatusBadge, useSyncSession } from "../features/sync-console";
 
 export const Route = createFileRoute("/integration/$integrationId")({
-  beforeLoad: ({ params }) => {
-    const integration = getIntegrationById(params.integrationId as ApplicationId);
-    if (!integration) {
-      throw notFound();
-    }
-  },
   component: IntegrationLayoutRoute,
 });
 
 function IntegrationLayoutRoute() {
   const { integrationId } = Route.useParams();
-  const integration = getIntegrationById(integrationId as ApplicationId)!;
+  const { integrations } = useSyncSession();
+  const { data: detailData, isLoading } = useQuery(integrationDetailQueryOptions({ input: { id: integrationId } }));
+  const integration = integrations.find((item) => item.id === integrationId) ?? detailData;
+
+  if (!integration) {
+    return (
+      <div className="border-b border-border/80 px-5 py-4 text-sm text-muted-foreground sm:px-8 lg:px-10">
+        {isLoading ? "Loading integration…" : "Integration not found."}
+      </div>
+    );
+  }
 
   return (
     <>
