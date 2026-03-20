@@ -59,6 +59,8 @@ where the API lives.
 
 ## Usage
 
+### Setup (once per app)
+
 ```ts
 // apps/web/src/lib/api.ts
 import { createApiClient } from '@portier-sync/api/client'
@@ -66,9 +68,102 @@ import { createApiClient } from '@portier-sync/api/client'
 export const tsr = createApiClient('https://portier-takehometest.onrender.com')
 ```
 
+### Queries — hook pattern
+
+ts-rest exposes hooks directly on each contract route. Use `useSuspenseQuery`
+to push loading state to a Suspense boundary and keep components data-only.
+
 ```tsx
-// any component
 import { tsr } from '@/lib/api'
 
+// list
 const { data } = tsr.integrations.list.useSuspenseQuery({})
+
+// single — path params go in queryData
+const { data } = tsr.integrations.get.useSuspenseQuery({
+  queryData: { params: { id: '1' } },
+})
+
+// history for an integration
+const { data } = tsr.history.list.useSuspenseQuery({
+  queryData: { params: { id: integrationId } },
+})
 ```
+
+### Queries — queryOptions pattern
+
+TanStack Query encourages defining query options outside components so the same
+descriptor can be passed to `useSuspenseQuery`, `prefetchQuery`,
+`ensureQueryData`, and `queryClient.invalidateQueries` without duplicating keys.
+
+ts-rest does not expose a native `.queryOptions()` factory — it is hook-first.
+To follow the colocation pattern, compose with the raw `.query` fetcher and
+TanStack's `queryOptions()` helper. The trade-off is that you manage query keys
+yourself instead of relying on ts-rest's internal key derivation.
+
+```ts
+import { queryOptions } from '@tanstack/react-query'
+import { tsr } from '@/lib/api'
+
+// Define once, reference everywhere
+export const integrationsListQueryOptions = () =>
+  queryOptions({
+    queryKey: ['integrations'],
+    queryFn: () => tsr.integrations.list.query({}),
+  })
+
+export const integrationDetailQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['integrations', id],
+    queryFn: () => tsr.integrations.get.query({ params: { id } }),
+  })
+
+export const integrationHistoryQueryOptions = (id: string) =>
+  queryOptions({
+    queryKey: ['integrations', id, 'history'],
+    queryFn: () => tsr.history.list.query({ params: { id } }),
+  })
+```
+
+```tsx
+// in a component
+const { data } = useSuspenseQuery(integrationDetailQueryOptions(id))
+
+// prefetch in a route loader
+await queryClient.prefetchQuery(integrationsListQueryOptions())
+
+// invalidate after mutation
+await queryClient.invalidateQueries(integrationDetailQueryOptions(id))
+```
+
+### Mutations
+
+POST/PUT/DELETE routes expose `useMutation`. Variables type is inferred from the
+contract — no manual typing needed. Invalidate related queries in `onSuccess`.
+
+```tsx
+import { tsr } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { integrationDetailQueryOptions } from '@/api/integrations.query'
+
+const queryClient = useQueryClient()
+
+const { mutate, isPending } = tsr.sync.triggerSync.useMutation({
+  onSuccess: () => {
+    // invalidate so detail + list re-fetch fresh data
+    queryClient.invalidateQueries({ queryKey: ['integrations'] })
+  },
+})
+
+// call it
+mutate({ body: { application_id: integration.slug } })
+```
+
+### Known limitation
+
+ts-rest's `queryOptions` gap is intentional — oRPC exposes `.queryOptions()`
+natively because it owns the transport layer end-to-end. ts-rest is a contract
+adapter over plain fetch; the queryOptions pattern requires the manual key
+management shown above. For this project the trade-off is acceptable: we have
+Zod schemas as source of truth (ruling out openapi-fetch) and no oRPC server
+(ruling out oRPC). The manual key approach is explicit and fully type-safe.
