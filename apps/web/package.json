@@ -8,6 +8,7 @@
     "dev:bare": "vite dev"
   },
   "dependencies": {
+    "@portier-sync/api": "workspace:*",
     "@portier-sync/env": "workspace:*",
     "@portier-sync/ui": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",

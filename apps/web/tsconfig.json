@@ -23,7 +23,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@portier-sync/ui/*": ["../../packages/ui/src/*"]
+      "@portier-sync/ui/*": ["../../packages/ui/src/*"],
+      "@portier-sync/api": ["../../packages/api/src/index.ts"]
     }
   }
 }

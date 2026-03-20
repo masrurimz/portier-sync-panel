@@ -23,6 +23,7 @@
     "apps/web": {
       "name": "web",
       "dependencies": {
+        "@portier-sync/api": "workspace:*",
         "@portier-sync/env": "workspace:*",
         "@portier-sync/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
@@ -58,6 +59,18 @@
         "vite": "^7.0.2",
         "web-vitals": "^5.0.3",
         "wrangler": "^4.54.0",
+      },
+    },
+    "packages/api": {
+      "name": "@portier-sync/api",
+      "version": "0.0.0",
+      "dependencies": {
+        "@ts-rest/core": "^3.52.1",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@portier-sync/config": "workspace:*",
+        "typescript": "^5",
       },
     },
     "packages/config": {
@@ -549,6 +562,8 @@
 
     "@poppinss/exception": ["@poppinss/exception@1.2.3", "", {}, "sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw=="],
 
+    "@portier-sync/api": ["@portier-sync/api@workspace:packages/api"],
+
     "@portier-sync/config": ["@portier-sync/config@workspace:packages/config"],
 
     "@portier-sync/env": ["@portier-sync/env@workspace:packages/env"],
@@ -786,6 +801,8 @@
     "@testing-library/react": ["@testing-library/react@16.3.2", "", { "dependencies": { "@babel/runtime": "^7.12.5" }, "peerDependencies": { "@testing-library/dom": "^10.0.0", "@types/react": "^18.0.0 || ^19.0.0", "@types/react-dom": "^18.0.0 || ^19.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-XU5/SytQM+ykqMnAnvB2umaJNIOsLF3PVv//1Ew4CTcpz0/BRyy/af40qqrt7SjKpDdT1saBMc42CUok5gaw+g=="],
 
     "@ts-morph/common": ["@ts-morph/common@0.27.0", "", { "dependencies": { "fast-glob": "^3.3.3", "minimatch": "^10.0.1", "path-browserify": "^1.0.1" } }, "sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ=="],
+
+    "@ts-rest/core": ["@ts-rest/core@3.52.1", "", { "peerDependencies": { "@types/node": "^18.18.7 || >=20.8.4", "zod": "^3.22.3" }, "optionalPeers": ["@types/node", "zod"] }, "sha512-tAjz7Kxq/grJodcTA1Anop4AVRDlD40fkksEV5Mmal88VoZeRKAG8oMHsDwdwPZz+B/zgnz0q2sF+cm5M7Bc7g=="],
 
     "@turbo/darwin-64": ["@turbo/darwin-64@2.8.19", "", { "os": "darwin", "cpu": "x64" }, "sha512-WNzpqJV7rO/oKmsxjtSFXuV87fZb/qxzeGWXJng4oHFz7iPOFSWrPb2gTazJgoTvXUfe1kOH2o0F+zFrerwzRw=="],
 

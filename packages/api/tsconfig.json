@@ -1,0 +1,7 @@
+{
+  "extends": "@portier-sync/config/tsconfig.base.json",
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

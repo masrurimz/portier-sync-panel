@@ -1,0 +1,1 @@
+export { syncContract } from "./sync.js";
