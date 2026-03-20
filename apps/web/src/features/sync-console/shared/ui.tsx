@@ -13,7 +13,7 @@ import { cn } from "@portier-sync/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangleIcon, CheckCircle2Icon, CircleDashedIcon, ShieldAlertIcon } from "lucide-react";
 
-import type { ApplicationId, Integration } from "../../../lib/api-types";
+import type { Integration, IntegrationId } from "@portier-sync/api";
 import type { ConsoleMetric } from "../domain/integration";
 
 export function PageShell({
@@ -155,7 +155,7 @@ export function IntegrationLinkSet({
   integrationId,
   current,
 }: {
-  integrationId: ApplicationId;
+  integrationId: IntegrationId;
   current: "overview" | "review" | "history";
 }) {
   const links = [

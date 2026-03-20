@@ -18,30 +18,69 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@portier-sync/ui/compon
 import { useNavigate } from "@tanstack/react-router";
 import { Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
-import type { ApplicationId } from "../../../lib/api-types";
-import { useSyncConsole } from "../../../lib/sync-console-store";
+import type { IntegrationId } from "@portier-sync/api";
+import { useSyncSession } from "../state/sync-session-provider";
 import { ReviewResolutionForm } from "./components/review-resolution-form";
 import { getItemIndicator } from "./lib/get-item-indicator";
 import { ReviewStat, ValuePanel } from "./ui";
-import { DataPoint, PageShell, SurfaceSection } from "../shared/ui";
+import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../shared/ui";
 
-export function ReviewPage({ integrationId }: { integrationId: ApplicationId }) {
+export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) {
   const navigate = useNavigate();
-  const { integrations, getReviewBatch, updateReviewDecision, toggleReviewSelection, approveSafeChanges, applyReview } =
-    useSyncConsole();
+  const {
+    integrations,
+    reviewBatches,
+    updateReviewDecision,
+    toggleReviewSelection,
+    approveSafeChanges,
+    applyReview,
+  } = useSyncSession();
 
   const integration = integrations.find((item) => item.id === integrationId);
-  const batch = getReviewBatch(integrationId);
+  const batch = reviewBatches[integrationId];
 
-  const [focusedId, setFocusedId] = React.useState(batch.items[0]?.id ?? "");
+  const [focusedId, setFocusedId] = React.useState(batch?.items[0]?.id ?? "");
   const [showConfirm, setShowConfirm] = React.useState(false);
 
   // Reset focus to first item when the batch changes (e.g. after a fresh sync).
   React.useEffect(() => {
-    setFocusedId(batch.items[0]?.id ?? "");
-  }, [batch.items]);
+    setFocusedId(batch?.items[0]?.id ?? "");
+  }, [batch?.items]);
 
-  if (!integration) return null;
+  // Guard: integration not yet hydrated in session state
+  if (!integration) {
+    return (
+      <PageShell
+        eyebrow="Review queue"
+        title="Loading…"
+        description="Fetching integration details."
+      >
+        <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
+          Integration is loading or unavailable. If this persists, check your connection and refresh.
+        </div>
+      </PageShell>
+    );
+  }
+
+  // Guard: no preview batch available
+  if (!batch) {
+    return (
+      <PageShell
+        eyebrow="Review queue"
+        title={`${integration.name} review`}
+        description="No changes are queued for review."
+      >
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
+            No preview has been fetched for this integration yet. Run "Fetch latest" from the detail page to populate the review queue.
+          </div>
+          <LinkButton to="/integration/$integrationId" params={{ integrationId }} variant="secondary">
+            Go to detail page
+          </LinkButton>
+        </div>
+      </PageShell>
+    );
+  }
 
   const grouped = {
     safe: batch.items.filter((item) => !item.conflict),

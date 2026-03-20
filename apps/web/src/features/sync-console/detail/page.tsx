@@ -4,35 +4,52 @@ import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 
-import type { ApplicationId } from "../../../lib/api-types";
-import { formatRelativeTime } from "../../../lib/api-types";
-import { useSyncConsole } from "../../../lib/sync-console-store";
+import type { IntegrationId } from "@portier-sync/api";
+import { useSyncSession } from "../state/sync-session-provider";
+import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../domain/integration";
+import { selectPendingReviewCount, selectPreviewLines } from "../state/sync-session-selectors";
 import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../shared/ui";
 
-export function DetailPage({ integrationId }: { integrationId: ApplicationId }) {
-  const {
-    integrations,
-    healthByIntegration,
-    syncingId,
-    getIntegrationMetrics,
-    getDetailPreviewLines,
-    getPendingReviewCount,
-    getReviewBatch,
-    getSyncError,
-    syncNow,
-  } = useSyncConsole();
+export function DetailPage({ integrationId }: { integrationId: IntegrationId }) {
+  const { integrations, syncingId, syncNow, reviewBatches, syncErrors } = useSyncSession();
 
   const integration = integrations.find((item) => item.id === integrationId);
+  const batch = reviewBatches[integrationId];
+  const syncError = syncErrors[integrationId] ?? null;
+  const isSyncing = syncingId === integrationId;
 
+  // Guard: integration not yet hydrated in session state
   if (!integration) {
-    return null;
+    return (
+      <PageShell
+        eyebrow="Integration detail"
+        title="Loading…"
+        description="Fetching integration details."
+      >
+        <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
+          Integration is loading or unavailable. If this persists, check your connection and refresh.
+        </div>
+      </PageShell>
+    );
   }
 
-  const health = healthByIntegration[integrationId];
-  const metrics = getIntegrationMetrics(integrationId);
-  const previewLines = getDetailPreviewLines(integrationId);
-  const syncError = getSyncError(integrationId);
-  const isSyncing = syncingId === integrationId;
+  const health = integrationHealthSeed[integrationId] ?? {
+    reliability: "Status unknown",
+    sourceHealth: "healthy" as const,
+    auditRetention: "—",
+    nextScheduledSync: "—",
+  };
+
+  const previewLines = batch ? selectPreviewLines(batch) : [];
+  const pendingCount = batch ? selectPendingReviewCount(batch) : 0;
+  const conflictCount = batch ? batch.items.filter((item) => item.conflict).length : 0;
+  const metrics = buildIntegrationMetrics({
+    integration,
+    pendingUpdates: pendingCount,
+    conflicts: conflictCount,
+    health,
+    hasFetchError: Boolean(syncError),
+  });
 
   const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; conflictCount: number; appName: string } | null>(null);
 
@@ -43,15 +60,18 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
   const handleSyncNow = async () => {
     try {
       await syncNow(integrationId);
-      const freshBatch = getReviewBatch(integrationId);
-      setFetchResult({
-        changeCount: freshBatch.items.length,
-        conflictCount: freshBatch.items.filter((i) => i.conflict).length,
-        appName: freshBatch.applicationName,
-      });
+      // Re-fetch batch from state after sync completes
+      const freshBatch = reviewBatches[integrationId];
+      if (freshBatch) {
+        setFetchResult({
+          changeCount: freshBatch.items.length,
+          conflictCount: freshBatch.items.filter((i) => i.conflict).length,
+          appName: freshBatch.applicationName,
+        });
+      }
     } catch {
       setFetchResult(null);
-      // toast feedback is handled in the sync store; stay on the detail page on failure.
+      // toast feedback is handled in the sync session; stay on the detail page on failure.
     }
   };
 
@@ -126,7 +146,7 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
-              No preview is available yet. Run Sync now to fetch a fresh batch.
+              No preview is available yet. Run Fetch latest to fetch a fresh batch.
             </div>
           )}
         </SurfaceSection>
@@ -152,7 +172,7 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
               <CardContent className="flex flex-col gap-2">
                 <DataPoint label="Current version" value={integration.version} />
                 <DataPoint label="Last synced" value={formatRelativeTime(integration.lastSynced)} />
-                <DataPoint label="Pending review" value={`${getPendingReviewCount(integrationId)} fields`} />
+                <DataPoint label="Pending review" value={`${pendingCount} fields`} />
               </CardContent>
             </Card>
             <Card size="sm" className="border border-border/70 bg-background/40">
