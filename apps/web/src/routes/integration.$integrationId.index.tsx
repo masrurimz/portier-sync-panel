@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { IntegrationDetailScreen } from "../features/sync-console/detail/screens/integration-detail-screen";
+import { DetailPage } from "../features/sync-console";
 import type { ApplicationId } from "../lib/api-types";
 
 export const Route = createFileRoute("/integration/$integrationId/")({
@@ -9,5 +9,5 @@ export const Route = createFileRoute("/integration/$integrationId/")({
 
 function IntegrationDetailRoute() {
   const { integrationId } = Route.useParams();
-  return <IntegrationDetailScreen integrationId={integrationId as ApplicationId} />;
+  return <DetailPage integrationId={integrationId as ApplicationId} />;
 }

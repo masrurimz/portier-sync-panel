@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { OverviewScreen } from "../features/sync-console/overview/screens/overview-screen";
+import { OverviewPage } from "../features/sync-console";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
 });
 
 function HomeComponent() {
-  return <OverviewScreen />;
+  return <OverviewPage />;
 }

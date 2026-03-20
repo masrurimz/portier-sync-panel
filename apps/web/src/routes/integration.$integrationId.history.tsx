@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { IntegrationHistoryScreen } from "../features/sync-console/history/screens/integration-history-screen";
+import { HistoryPage } from "../features/sync-console";
 import type { ApplicationId } from "../lib/api-types";
 
 export const Route = createFileRoute("/integration/$integrationId/history")({
@@ -9,5 +9,5 @@ export const Route = createFileRoute("/integration/$integrationId/history")({
 
 function IntegrationHistoryRoute() {
   const { integrationId } = Route.useParams();
-  return <IntegrationHistoryScreen integrationId={integrationId as ApplicationId} />;
+  return <HistoryPage integrationId={integrationId as ApplicationId} />;
 }

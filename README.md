@@ -76,129 +76,109 @@ Supported integration IDs: `salesforce`, `hubspot`, `stripe`, `slack`, `zendesk`
 
 ## Architecture
 
-### Feature-First Structure
-
-The application follows a feature-first organization within `apps/web/src/features/sync-console/`:
-
-```
-features/sync-console/
-├── api/                    # TanStack Query hooks and API clients
-│   ├── sync-preview.query.ts
-│   └── sync-preview.ts
-├── domain/                 # Business logic and domain models
-│   ├── integration.ts      # Integration health, metrics, utilities
-│   ├── review.ts           # Review batch, resolution types
-│   └── history.ts          # History entry builders
-├── state/                  # State management
-│   ├── sync-session-provider.tsx
-│   └── sync-session-selectors.ts
-├── overview/               # Overview screen
-│   └── screens/overview-screen.tsx
-├── detail/                 # Detail screen
-│   └── screens/integration-detail-screen.tsx
-├── review/                 # Review flow
-│   ├── screens/integration-review-screen.tsx
-│   ├── components/review-resolution-form.tsx
-│   └── forms/use-review-resolution-form.ts
-└── history/                # History screen
-    └── screens/integration-history-screen.tsx
-```
-
-### State Management
-
-- **TanStack Query**: Server state for sync preview mutations (Sync Now action)
-- **Sync Session Provider**: React context-based state for review resolution, history, and integration data
-- **TanStack Form**: Conflict resolution form state with validation
-
-### Routing
-
-File-based routing via TanStack Router:
-
-```
-routes/
-├── __root.tsx                      # Root layout with providers
-├── index.tsx                       # Overview screen
-├── integration.$integrationId.tsx  # Integration layout route
-├── integration.$integrationId.index.tsx      # Detail screen
-├── integration.$integrationId.review.tsx     # Review screen
-└── integration.$integrationId.history.tsx    # History screen
-```
-
-### Providers
-
-- **QueryProvider**: TanStack Query client configuration
-- **SyncSessionProvider**: Sync console state (review items, history, integrations)
-
-## Assumptions & Design Notes
-
-### Data Model
-
-- All integration data, review batches, and history are currently seeded client-side
-- The `Sync Now` action calls the external API but response normalization is implemented; full integration pending backend availability
-- Review items support three resolution kinds: `local`, `external`, `merged` (with custom merged value)
-
-### API Integration
-
-The sync preview endpoint is:
-```
-GET https://portier-takehometest.onrender.com/api/v1/data/sync?application_id={id}
-```
-
-**Known API behaviors:**
-- `salesforce`, `slack`, `intercom`: Return valid preview data
-- `hubspot`: May timeout during preview fetch
-- `stripe`, `zendesk`: Return 500 errors (simulated provider issues)
-
-Error handling normalizes API errors into user-friendly messages with retry guidance.
-
-### Current Limitations
-
-1. **No persistence**: Review decisions and sync history reset on page reload
-2. **Seeded data**: Integration metrics, review batches, and history use seed data with realistic timestamps
-3. **No auth**: No authentication layer; assumes trusted internal operators
-4. **Single tenant**: No multi-tenancy or workspace isolation
-
-### Type Safety
-
-- Full TypeScript coverage with strict mode
-- Path aliases: `@/*` → `apps/web/src/*`, `@portier-sync/ui/*` → `packages/ui/src/*`
-- Domain types defined in `apps/web/src/lib/api-types.ts`
-- Review resolution uses discriminated unions for kind-safe handling
-
-## Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `bun run dev` | Start development server (port 3001) |
-| `bun run build` | Build for production |
-| `bun run check-types` | TypeScript type check |
-| `bun run check` | Lint and format with oxlint |
-
-## Project Structure
+### Package Structure
 
 ```
 portier-sync/
 ├── apps/
-│   └── web/
-│       ├── src/
-│       │   ├── app/              # App-level providers
-│       │   ├── components/       # Shared app components
-│       │   ├── features/         # Feature-first modules
-│       │   ├── lib/              # Utilities and API types
-│       │   ├── routes/           # TanStack Router pages
-│       │   └── index.css         # Global styles
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── vite.config.ts
-├── packages/
-│   ├── ui/                       # Shared shadcn/ui components
-│   ├── env/                      # Environment configuration
-│   └── config/                   # Shared TypeScript config
-├── Dockerfile
-├── .dockerignore
-├── package.json
-└── README.md
+│   └── web/            # TanStack Start SSR app (port 3001)
+└── packages/
+    ├── api/            # @portier-sync/api — ts-rest contract + MSW handlers
+    ├── ui/             # @portier-sync/ui — shadcn/Base UI component library
+    ├── env/            # @portier-sync/env — environment validation (Zod)
+    └── config/         # @portier-sync/config — shared TypeScript base config
 ```
+
+### Feature Structure
+
+The sync-console follows a feature-first layout inside `apps/web/src/features/sync-console/`:
+
+```
+features/sync-console/
+├── index.ts                    # Public API: pages + provider + StatusBadge
+├── shared/
+│   └── ui.tsx                  # PageShell, SurfaceSection, MetricGrid, StatusBadge, etc.
+├── domain/                     # Pure business logic (no React, no fetch)
+│   ├── integration.ts          # Integration health, metrics, selectors
+│   ├── review.ts               # ReviewBatch, ReviewItem, resolution utilities
+│   └── history.ts              # History entry builders
+├── state/                      # React context state management
+│   ├── sync-session-provider.tsx
+│   └── sync-session-selectors.ts
+├── api/                        # ts-rest typed client
+│   ├── sync-preview.ts         # SyncFetchError + error normalization
+│   └── sync-preview.query.ts   # syncClient (initClient from @ts-rest/core)
+├── overview/
+│   └── page.tsx                # Overview page component
+├── detail/
+│   └── page.tsx                # Detail page component
+├── history/
+│   └── page.tsx                # History page component
+└── review/
+    ├── page.tsx                # Review page component
+    ├── ui/                     # ReviewStat, ValuePanel (with inline diff)
+    ├── lib/                    # getItemIndicator
+    ├── components/             # ReviewResolutionForm
+    └── forms/                  # TanStack Form v1 composable:
+        ├── resolution-form.ts  #   createFormHookContexts + createFormHook
+        ├── fields/             #   ResolutionChoiceField, MergedValueField, NotesField
+        ├── submit-button.tsx   #   form.Subscribe reactive button
+        └── form-progress.tsx   #   form.Subscribe error display
+```
+
+Routes import from `@/features/sync-console` (the public entrypoint), not from deep internal paths.
+
+### State Management
+
+- **TanStack Query**: Query client for server state. Sync Now calls `syncClient.preview.query()` imperatively.
+- **Sync Session Provider**: React context holding integrations, reviewBatches, historyByIntegration, syncErrors.
+- **TanStack Form v1**: Composable form patterns via `createFormHook` for conflict resolution.
+
+### API Contract
+
+The sync preview endpoint is typed via ts-rest:
+
+```
+GET https://portier-takehometest.onrender.com/api/v1/data/sync?application_id={id}
+
+200: ApiSuccessResponse<SyncData>  — { code, message, data: { sync_approval: { application_name, changes[] } } }
+400: ApiErrorResponse              — { error, code, message }
+500: ApiErrorResponse
+502: ApiErrorResponse
+```
+
+The contract is defined in `packages/api/src/contract/sync.ts` using `@ts-rest/core` + Zod schemas.
+
+### Development Mocking (MSW)
+
+In development, all requests to the sync endpoint are intercepted by MSW:
+
+```bash
+# MSW is activated automatically in dev mode
+bun run dev
+```
+
+- Handlers live in `packages/api/src/msw/handlers/sync-handlers.ts`
+- Mock data (SyncChange[] per integration) lives in `packages/api/src/msw/data/sync-changes.ts`
+- Error handlers for 400/502 scenarios in `packages/api/src/msw/handlers/error-handlers.ts`
+- MSWProvider initializes the worker; tree-shaken out of production builds
+
+### Design Decisions
+
+**ts-rest over raw fetch**: Contract-first design gives end-to-end type safety. Request params, response bodies,
+and error shapes are all typed from the single contract in `packages/api`. Callers cannot accidentally pass
+the wrong params or misread the response shape.
+
+**MSW for mocking**: Mock data lives at the HTTP layer, not in the domain layer. Components have no knowledge
+of whether data is mocked or real. Error scenarios (502, 400) are easy to test by swapping handlers.
+
+**Feature slices**: Each feature (`overview`, `detail`, `history`, `review`) is self-contained with its own
+page, UI components, and hooks. The feature public API (`features/sync-console/index.ts`) enforces the
+boundary — routes import from the index, not from deep internal paths.
+
+**TanStack Form v1 composable**: `createFormHook` creates app-level form primitives with typed field and form
+components. Field components read from context (`useFieldContext`) instead of prop drilling. `form.Subscribe`
+provides granular reactivity without re-rendering the whole form.
 
 ## License
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { IntegrationReviewScreen } from "../features/sync-console/review/screens/integration-review-screen";
+import { ReviewPage } from "../features/sync-console";
 import type { ApplicationId } from "../lib/api-types";
 
 export const Route = createFileRoute("/integration/$integrationId/review")({
@@ -9,5 +9,5 @@ export const Route = createFileRoute("/integration/$integrationId/review")({
 
 function IntegrationReviewRoute() {
   const { integrationId } = Route.useParams();
-  return <IntegrationReviewScreen integrationId={integrationId as ApplicationId} />;
+  return <ReviewPage integrationId={integrationId as ApplicationId} />;
 }
