@@ -7,14 +7,20 @@ import { useReviewResolutionForm } from "../forms/use-review-resolution-form";
 
 export function ReviewResolutionForm({
   item,
+  applicationName,
+  onAutoSave,
   onSubmit,
 }: {
   item: ReviewItem;
+  applicationName: string;
+  onAutoSave: (resolution: ReviewResolution) => void;
   onSubmit: (resolution: ReviewResolution) => void;
 }) {
-  const form = useReviewResolutionForm({ item, onSubmit });
+  const form = useReviewResolutionForm({ item, onSubmit: (resolution) => onSubmit(resolution) });
   const canSubmit = useStore(form.store, (state) => state.canSubmit);
   const errors = useStore(form.store, (state) => state.errors);
+
+  const currentKind = item.resolution.kind;
 
   return (
     <form
@@ -29,36 +35,67 @@ export function ReviewResolutionForm({
       <form.Field name="kind">
         {(field) => (
           <div className="grid gap-3 lg:grid-cols-3">
-            {([
-              { label: "Keep local", value: "local" },
-              { label: "Accept external", value: "external" },
-              { label: "Edit merged value", value: "merged" },
-            ] as const).map((option) => (
-              <button
-                key={option.value}
-                className={`rounded-2xl border p-4 text-left transition-colors ${
-                  field.state.value === option.value
-                    ? "border-primary/45 bg-primary/8 text-foreground"
-                    : "border-border/70 bg-background/40 text-muted-foreground hover:bg-accent/35 hover:text-foreground"
-                }`}
-                onClick={() => field.handleChange(option.value)}
-                type="button"
-              >
-                <div className="text-sm font-medium">{option.label}</div>
-                <div className="mt-1 text-xs leading-5">
-                  {field.state.value === option.value
-                    ? "Currently selected for the focused field."
-                    : "Available choice for the focused field."}
-                </div>
-              </button>
-            ))}
+            <button
+              className={`rounded-2xl border p-4 text-left transition-colors ${
+                currentKind === "local"
+                  ? "border-primary/45 bg-primary/8 text-foreground"
+                  : "border-border/70 bg-background/40 text-muted-foreground hover:bg-accent/35 hover:text-foreground"
+              }`}
+              onClick={() => {
+                onAutoSave({ kind: "local" });
+              }}
+              type="button"
+            >
+              <div className="text-sm font-medium">Keep Portier Value</div>
+              <div className="mt-1 text-xs leading-5">
+                {currentKind === "local"
+                  ? "Currently selected for the focused field."
+                  : "Available choice for the focused field."}
+              </div>
+            </button>
+            <button
+              className={`rounded-2xl border p-4 text-left transition-colors ${
+                currentKind === "external"
+                  ? "border-primary/45 bg-primary/8 text-foreground"
+                  : "border-border/70 bg-background/40 text-muted-foreground hover:bg-accent/35 hover:text-foreground"
+              }`}
+              onClick={() => {
+                onAutoSave({ kind: "external" });
+              }}
+              type="button"
+            >
+              <div className="text-sm font-medium">Use {applicationName} Value</div>
+              <div className="mt-1 text-xs leading-5">
+                {currentKind === "external"
+                  ? "Currently selected for the focused field."
+                  : "Available choice for the focused field."}
+              </div>
+            </button>
+            <button
+              className={`rounded-2xl border p-4 text-left transition-colors ${
+                currentKind === "merged"
+                  ? "border-primary/45 bg-primary/8 text-foreground"
+                  : "border-border/70 bg-background/40 text-muted-foreground hover:bg-accent/35 hover:text-foreground"
+              }`}
+              onClick={() => {
+                field.handleChange("merged");
+              }}
+              type="button"
+            >
+              <div className="text-sm font-medium">Create Custom Value</div>
+              <div className="mt-1 text-xs leading-5">
+                {currentKind === "merged"
+                  ? "Currently selected for the focused field."
+                  : "Available choice for the focused field."}
+              </div>
+            </button>
           </div>
         )}
       </form.Field>
 
       <form.Field name="mergedValue">
         {(field) =>
-          form.state.values.kind === "merged" ? (
+          form.state.values.kind === "merged" || currentKind === "merged" ? (
             <div className="flex flex-col gap-2">
               <Input
                 value={field.state.value}
@@ -74,11 +111,13 @@ export function ReviewResolutionForm({
 
       {errors[0] ? <p className="text-xs text-destructive">{String(errors[0])}</p> : null}
 
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={!canSubmit}>
-          Save resolution
-        </Button>
-      </div>
+      {(form.state.values.kind === "merged" || currentKind === "merged") && (
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={!canSubmit}>
+            Confirm Custom Value
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

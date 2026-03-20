@@ -10,7 +10,7 @@ export interface ReviewResolutionFormValues {
 
 export function toResolutionFormDefaults(item: ReviewItem): ReviewResolutionFormValues {
   return {
-    kind: item.resolution.kind,
+    kind: item.conflict && !item.resolution.kind ? undefined : item.resolution.kind,
     mergedValue: item.resolution.mergedValue ?? item.externalValue ?? item.localValue ?? "",
   };
 }
@@ -35,11 +35,11 @@ export function useReviewResolutionForm({
       },
     },
     onSubmit: async ({ value }) => {
-      onSubmit(
-        value.kind === "merged"
-          ? { kind: value.kind, mergedValue: value.mergedValue.trim() }
-          : { kind: value.kind },
-      );
+      if (value.kind === "merged") {
+        onSubmit({ kind: value.kind, mergedValue: value.mergedValue.trim() });
+      } else if (value.kind) {
+        onSubmit({ kind: value.kind });
+      }
     },
   });
 }

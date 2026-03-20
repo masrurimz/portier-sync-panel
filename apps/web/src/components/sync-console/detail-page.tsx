@@ -1,8 +1,8 @@
+import * as React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
-import { useNavigate } from "@tanstack/react-router";
-import { DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
+import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 
 import type { ApplicationId } from "../../lib/api-types";
 import { formatRelativeTime } from "../../lib/api-types";
@@ -10,7 +10,6 @@ import { useSyncConsole } from "../../lib/sync-console-store";
 import { DataPoint, IntegrationLinkSet, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "./shared";
 
 export function DetailPage({ integrationId }: { integrationId: ApplicationId }) {
-  const navigate = useNavigate();
   const {
     integrations,
     healthByIntegration,
@@ -18,6 +17,7 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
     getIntegrationMetrics,
     getDetailPreviewLines,
     getPendingReviewCount,
+    getReviewBatch,
     getSyncError,
     syncNow,
   } = useSyncConsole();
@@ -34,11 +34,23 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
   const syncError = getSyncError(integrationId);
   const isSyncing = syncingId === integrationId;
 
+  const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; conflictCount: number; appName: string } | null>(null);
+
+  React.useEffect(() => {
+    setFetchResult(null);
+  }, [integrationId]);
+
   const handleSyncNow = async () => {
     try {
       await syncNow(integrationId);
-      await navigate({ to: "/integration/$integrationId/review", params: { integrationId } });
+      const freshBatch = getReviewBatch(integrationId);
+      setFetchResult({
+        changeCount: freshBatch.items.length,
+        conflictCount: freshBatch.items.filter((i) => i.conflict).length,
+        appName: freshBatch.applicationName,
+      });
     } catch {
+      setFetchResult(null);
       // toast feedback is handled in the sync store; stay on the detail page on failure.
     }
   };
@@ -47,13 +59,13 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
     <PageShell
       eyebrow="Integration detail"
       title={`${integration.name} sync surface`}
-      description="Health, pending work, preview context, and audit access are kept together so the operator can decide whether to fetch, review, or inspect history next."
+      description="Review health, pending work, and recent context before you sync or open review."
       actions={
         <>
           <StatusBadge status={integration.status} />
           <Button onClick={handleSyncNow} disabled={isSyncing} variant="default">
             <RefreshCwIcon data-icon="inline-start" className={isSyncing ? "animate-spin" : ""} />
-            {isSyncing ? "Syncing…" : "Sync now"}
+            {isSyncing ? "Syncing…" : "Fetch latest"}
           </Button>
         </>
       }
@@ -73,12 +85,35 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
         </AlertDescription>
       </Alert>
 
+      {fetchResult !== null && (
+        <Card className="border border-border/70 bg-background/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <CheckCircle2Icon className="size-4 text-emerald-500" />
+              Fetch complete
+            </CardTitle>
+            <CardDescription>
+              {fetchResult.changeCount === 0
+                ? `${fetchResult.appName} returned no changes.`
+                : `Found ${fetchResult.changeCount} change${fetchResult.changeCount !== 1 ? "s" : ""} — ${fetchResult.conflictCount} require${fetchResult.conflictCount !== 1 ? "" : "s"} resolution.`}
+            </CardDescription>
+          </CardHeader>
+          {fetchResult.changeCount > 0 && (
+            <CardContent>
+              <LinkButton to="/integration/$integrationId/review" params={{ integrationId }} variant="default">
+                Review updates
+              </LinkButton>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       <MetricGrid metrics={metrics} />
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
         <SurfaceSection
           title="Incoming changes preview"
-          description="Fetched changes are summarized before the operator commits to field-by-field review."
+          description="Summary of fetched changes before field-level review."
           action={
             <LinkButton to="/integration/$integrationId/review" params={{ integrationId }} variant="secondary">
               Review queue
@@ -96,14 +131,14 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
-              No preview is currently available for this integration. Trigger Sync now to fetch a fresh batch.
+              No preview is available yet. Run Sync now to fetch a fresh batch.
             </div>
           )}
         </SurfaceSection>
 
         <SurfaceSection
           title="Audit and operating notes"
-          description="Context that helps an operator understand the connector before applying or escalating a batch."
+          description="Key context for deciding whether to apply, retry, or escalate."
           action={
             <LinkButton to="/integration/$integrationId/history" params={{ integrationId }}>
               Open history
@@ -117,7 +152,7 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
                   <HistoryIcon className="size-4 text-muted-foreground" />
                   Recent versions
                 </CardTitle>
-                <CardDescription>Version lineage remains one click away from the active operational surface.</CardDescription>
+                <CardDescription>Quick access to recent version lineage.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
                 <DataPoint label="Current version" value={integration.version} />
@@ -131,14 +166,11 @@ export function DetailPage({ integrationId }: { integrationId: ApplicationId }) 
                   <DatabaseZapIcon className="size-4 text-muted-foreground" />
                   Source notes
                 </CardTitle>
-                <CardDescription>These notes anchor the operator in connector-specific constraints.</CardDescription>
+                <CardDescription>Connector-specific notes for safe operations.</CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-3 text-muted-foreground">
                 <p>
                   Source health is currently marked <span className="font-medium text-foreground">{health.sourceHealth}</span>. Use retryable errors to decide whether to fetch again or inspect the last successful history entry.
-                </p>
-                <p>
-                  Live fetch is only required for Sync now. The rest of the UI remains locally modeled so the review and audit flows can be exercised without backend support.
                 </p>
               </CardContent>
             </Card>

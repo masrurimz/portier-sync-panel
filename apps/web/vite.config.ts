@@ -9,5 +9,6 @@ export default defineConfig({
   plugins: [tsconfigPaths(), tailwindcss(), tanstackStart(), viteReact(), alchemy()],
   server: {
     port: 3001,
+    host: true,
   },
 });

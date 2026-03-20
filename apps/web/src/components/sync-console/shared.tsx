@@ -103,12 +103,30 @@ export function StatusBadge({ status }: { status: Integration["status"] }) {
           ? ShieldAlertIcon
           : AlertTriangleIcon;
 
-  const variant = status === "conflict" || status === "error" ? "destructive" : status === "syncing" ? "outline" : "secondary";
+  const label =
+    status === "synced"
+      ? "Healthy"
+      : status === "syncing"
+        ? "Syncing"
+        : status === "conflict"
+          ? "Needs Review"
+          : "Failed";
+
+  if (status === "conflict") {
+    return (
+      <Badge variant="outline" className="border-amber-500/50 text-amber-600 bg-amber-500/8">
+        <Icon data-icon="inline-start" />
+        {label}
+      </Badge>
+    );
+  }
+
+  const variant = status === "error" ? "destructive" : status === "syncing" ? "outline" : "secondary";
 
   return (
     <Badge variant={variant}>
       <Icon data-icon="inline-start" />
-      {status === "synced" ? "Synced" : status === "syncing" ? "Syncing" : status === "conflict" ? "Conflict" : "Error"}
+      {label}
     </Badge>
   );
 }

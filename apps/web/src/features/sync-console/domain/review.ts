@@ -1,7 +1,7 @@
 import type { ApplicationId, Integration, SyncChange } from "../../../lib/api-types";
 
 export interface ReviewResolution {
-  kind: "local" | "external" | "merged";
+  kind?: "local" | "external" | "merged";
   mergedValue?: string;
 }
 
@@ -35,8 +35,8 @@ export interface ReviewBatch {
 function makeSeedItem(input: Omit<ReviewItem, "selected" | "resolution">): ReviewItem {
   return {
     ...input,
-    selected: true,
-    resolution: { kind: input.conflict ? "local" : "external" },
+    selected: !input.conflict,
+    resolution: input.conflict ? ({} as ReviewResolution) : { kind: "external" },
   };
 }
 
@@ -384,8 +384,8 @@ export function buildBatchFromApi(integrationId: ApplicationId, integration: Int
         : "This change can be previewed directly from the external payload.",
       sourceMeta: `${applicationName} • fetched ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
       conflict,
-      selected: true,
-      resolution: { kind: conflict ? "local" : "external" },
+      selected: !conflict,
+      resolution: conflict ? ({} as ReviewResolution) : { kind: "external" },
     } satisfies ReviewItem;
   });
 

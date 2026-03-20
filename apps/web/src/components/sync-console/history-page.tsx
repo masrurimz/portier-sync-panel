@@ -1,10 +1,9 @@
 import * as React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Badge } from "@portier-sync/ui/components/badge";
-import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { Separator } from "@portier-sync/ui/components/separator";
-import { ArrowRightIcon, HistoryIcon } from "lucide-react";
+import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
 
 import type { ApplicationId } from "../../lib/api-types";
 import { useSyncConsole } from "../../lib/sync-console-store";
@@ -30,15 +29,8 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
     <PageShell
       eyebrow="History and audit"
       title={`${integration.name} version history`}
-      description="Inspect versions, trigger sources, results, and changed-field counts without losing the path back into the review workflow."
-      actions={
-        <>
-          <Badge variant="outline">{history.length} events</Badge>
-          <Button variant="outline" disabled>
-            Export audit
-          </Button>
-        </>
-      }
+      description="Inspect past sync events and audit details, then jump back into review when needed."
+      actions={<Badge variant="outline">{history.length} events</Badge>}
     >
       <div className="flex flex-wrap items-center gap-2">
         <LinkButton to="/integration/$integrationId" params={{ integrationId }}>Back to detail</LinkButton>
@@ -47,20 +39,21 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
 
       <Alert>
         <HistoryIcon />
-        <AlertTitle>History should answer what changed, who approved it, and when.</AlertTitle>
+        <AlertTitle>History answers what changed, who approved it, and when.</AlertTitle>
         <AlertDescription>
-          This view is interactive: selecting a timeline event updates the expanded audit panel so the operator can inspect result, counts, and context quickly.
+          Select an event to inspect its result, counts, and notes in the detail panel.
         </AlertDescription>
       </Alert>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <SurfaceSection
           title="Version timeline"
-          description="Collapsed rows still surface enough information to scan results quickly."
+          description="Each row includes enough context to scan outcomes quickly."
           action={<Badge variant="outline">Audit-first layout</Badge>}
         >
           <div className="flex flex-col gap-3">
             {history.map((entry) => {
+              // TODO: replace with a structured outcome field
               const flagged = entry.summary.toLowerCase().includes("error") || entry.summary.toLowerCase().includes("paused");
               return (
                 <button
@@ -83,7 +76,17 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
                           minute: "2-digit",
                         })}
                         {" • "}
-                        {entry.source === "user" ? "Triggered by operator" : "Triggered by system"}
+                        {entry.source === "user" ? (
+                          <>
+                            <UserIcon className="inline size-3 mr-1 text-muted-foreground" />
+                            Operator
+                          </>
+                        ) : (
+                          <>
+                            <BotIcon className="inline size-3 mr-1 text-muted-foreground" />
+                            Scheduled
+                          </>
+                        )}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -107,7 +110,7 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
           <div className="flex flex-col gap-6">
             <SurfaceSection
               title="Expanded event view"
-              description="Selecting a timeline event reveals the operator-facing context for that specific version change."
+              description="Details for the selected event."
               action={<Badge variant="outline">{selectedEntry.version}</Badge>}
             >
               <div className="grid gap-3">
@@ -119,26 +122,10 @@ export function HistoryPage({ integrationId }: { integrationId: ApplicationId })
               <Card size="sm" className="border border-border/70 bg-background/40">
                 <CardHeader>
                   <CardTitle className="text-sm">Details</CardTitle>
-                  <CardDescription>Operator-facing description preserved with the history event.</CardDescription>
+                  <CardDescription>Description recorded with this history event.</CardDescription>
                 </CardHeader>
                 <CardContent className="text-muted-foreground">{selectedEntry.details}</CardContent>
               </Card>
-            </SurfaceSection>
-
-            <SurfaceSection
-              title="Navigate the flow"
-              description="History should support movement back into the operational workflow without losing orientation."
-            >
-              <div className="flex flex-col gap-2">
-                <LinkButton to="/integration/$integrationId/review" params={{ integrationId }} variant="secondary" className="justify-between">
-                  Return to review queue
-                  <ArrowRightIcon data-icon="inline-end" />
-                </LinkButton>
-                <LinkButton to="/integration/$integrationId" params={{ integrationId }} className="justify-between">
-                  Back to detail
-                  <ArrowRightIcon data-icon="inline-end" />
-                </LinkButton>
-              </div>
             </SurfaceSection>
           </div>
         ) : null}

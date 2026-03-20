@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build output
+dist
+**/dist
+
+# Dev files
+.git
+.gitignore
+*.md
+!README.md
+.dockerignore
+Dockerfile
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Logs
+*.log
+logs
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Test
+coverage
+**/coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Misc
+.DS_Store
+Thumbs.db

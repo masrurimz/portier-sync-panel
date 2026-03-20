@@ -23,7 +23,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
       {
         name: "description",
-        content: "Static design-first preview pages for the Portier integration sync console take-home.",
+        content: "Interactive sync console for reviewing and applying integration changes.",
       },
     ],
     links: [

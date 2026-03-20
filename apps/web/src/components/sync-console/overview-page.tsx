@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Input } from "@portier-sync/ui/components/input";
 import {
@@ -10,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@portier-sync/ui/components/table";
-import { SearchIcon, SirenIcon, SlidersHorizontalIcon } from "lucide-react";
+import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
 import { formatRelativeTime } from "../../lib/api-types";
 import { useSyncConsole } from "../../lib/sync-console-store";
@@ -33,83 +32,69 @@ export function OverviewPage() {
     <PageShell
       eyebrow="Portier / Sync Console"
       title="Integration operations overview"
-      description="Monitor connector health, spot risky batches quickly, and route directly into the review surfaces that need operator attention."
-      actions={
-        <>
-          <LinkButton to="/integration/$integrationId" params={{ integrationId: "salesforce" }} variant="secondary">
-            Salesforce detail
-          </LinkButton>
-          <LinkButton to="/integration/$integrationId/review" params={{ integrationId: "hubspot" }}>
-            Review conflicts
-          </LinkButton>
-        </>
-      }
+      description="Track connector health, spot risky batches, and jump into the right workflow fast."
+      actions={undefined}
     >
-      <Alert>
-        <SirenIcon />
-        <AlertTitle>High-trust operational posture</AlertTitle>
-        <AlertDescription>
-          Status alone is not enough. This overview keeps pending review counts and degraded providers visible so the operator can route attention correctly.
-        </AlertDescription>
-      </Alert>
 
       <MetricGrid metrics={getOverviewMetrics()} />
 
-      <SurfaceSection
-        title="Priority review queue"
-        description="Integrations with conflicts or degraded providers are surfaced first so the operator can address risk before low-priority work."
-        action={<Badge variant="outline">{priorityItems.length} items need attention</Badge>}
-      >
-        <div className="grid gap-3 xl:grid-cols-2">
-          {priorityItems.map((integration) => (
-            <div key={integration.id} className="rounded-2xl border border-border/70 bg-background/35 p-4">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span aria-hidden="true" className="text-lg">{integration.icon}</span>
-                      <h3 className="text-base font-semibold">{integration.name}</h3>
+      {priorityItems.length > 0 && (
+        <SurfaceSection
+          title="Priority review queue"
+          description="Connectors with conflicts or degraded health are shown first."
+          action={<Badge variant="outline">{priorityItems.length} items need attention</Badge>}
+        >
+          <div className="grid gap-3 xl:grid-cols-2">
+            {priorityItems.map((integration) => (
+              <div key={integration.id} className="rounded-2xl border border-border/70 bg-background/35 p-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span aria-hidden="true" className="text-lg">{integration.icon}</span>
+                        <h3 className="text-base font-semibold">{integration.name}</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {integration.status === "conflict"
+                          ? "Pending field decisions must be resolved before apply."
+                          : "Provider health is degraded. Local data is unchanged."}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {integration.status === "conflict"
-                        ? "Field-level decisions are waiting before this connector can be applied safely."
-                        : "Provider health degraded during preview generation. Local data remains unchanged."}
-                    </p>
+                    <StatusBadge status={integration.status} />
                   </div>
-                  <StatusBadge status={integration.status} />
-                </div>
-                <div className="grid gap-2 md:grid-cols-3">
-                  <DataPoint label="Pending review" value={`${getPendingReviewCount(integration.id)} fields`} />
-                  <DataPoint label="Last sync" value={formatRelativeTime(integration.lastSynced)} />
-                  <DataPoint label="Version" value={integration.version} />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="default">
-                    Open detail
-                  </LinkButton>
-                  {integration.status === "conflict" ? (
-                    <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }}>
-                      Review queue
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <DataPoint label="Pending review" value={`${getPendingReviewCount(integration.id)} fields`} />
+                    <DataPoint label="Last sync" value={formatRelativeTime(integration.lastSynced)} />
+                    <DataPoint label="Version" value={integration.version} />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">
+                      Manage
                     </LinkButton>
-                  ) : (
-                    <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }}>
-                      Inspect history
-                    </LinkButton>
-                  )}
+                    {integration.status === "conflict" ? (
+                      <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }}>
+                        Review updates
+                      </LinkButton>
+                    ) : (
+                      <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">
+                        View history
+                      </LinkButton>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </SurfaceSection>
+            ))}
+          </div>
+        </SurfaceSection>
+      )}
 
       <SurfaceSection
         title="Integration inventory"
-        description="Search and filter connectors by current posture before jumping into the detailed workflow for any one integration."
+        description="Search and filter connectors before opening detailed workflows."
         action={
           <div className="flex items-center gap-2 text-muted-foreground">
             <SlidersHorizontalIcon className="size-4" />
-            <span className="text-xs">Search and status filters are live.</span>
+            <span className="text-xs">Search and status filters update immediately.</span>
           </div>
         }
       >
@@ -164,9 +149,23 @@ export function OverviewPage() {
                 <TableCell>{formatRelativeTime(integration.lastSynced)}</TableCell>
                 <TableCell>{integration.version}</TableCell>
                 <TableCell className="text-right">
-                  <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }}>
-                    Open
-                  </LinkButton>
+                  {integration.status === "conflict" ? (
+                    <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }} variant="default">
+                      Review updates
+                    </LinkButton>
+                  ) : integration.status === "error" ? (
+                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="secondary">
+                      View logs
+                    </LinkButton>
+                  ) : integration.status === "syncing" ? (
+                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost" className="pointer-events-none opacity-50">
+                      Syncing…
+                    </LinkButton>
+                  ) : (
+                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">
+                      Manage
+                    </LinkButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
