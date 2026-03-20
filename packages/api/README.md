@@ -1,163 +1,91 @@
 # @portier-sync/api
 
-The single source of truth for all API contracts, schemas, mock data, and the
-type-safe React Query client used by the Portier sync console.
+Single source of truth for sync-console API domain schemas, endpoint contract, better-fetch client, and TanStack Query `queryOptions` factories.
 
 ## Structure
 
-```
+```txt
 src/
-  schema/         Zod schemas — domain types as the canonical source of truth
-  contract/       ts-rest contracts — describe the REST API surface
-  msw/
-    data/         Static seed data (integrations, history, sync changes)
-    handlers/     MSW request handlers, one file per contract
-  client.ts       createApiClient() — initialises the ts-rest React Query client
-  index.ts        Public barrel
+  schema/            Domain Zod schemas (authoritative)
+  api-contract.ts    Clean endpoint contract object (path/method/params/query/output)
+  fetch-schema.ts    Thin better-fetch createSchema adapter from apiContract
+  client.ts          $fetch client (throw: true) + ApiError type
+  queries/           Query keys + queryOptions factories
+  msw/               Mock data + handlers
+  index.ts           Public exports
 ```
 
-## Design decisions
+## Design
 
-### Zod schemas as source of truth
+### 1) Domain schemas stay pure
+`schema/*` models domain types only. No transport wiring in those files.
 
-All domain types live as Zod schemas in `src/schema/`. TypeScript types are
-derived via `z.infer<>`. This gives runtime validation and compile-time types
-from a single definition with no duplication.
+### 2) Contract object is the API map
+`api-contract.ts` defines endpoints in a clean object:
+- `integrations.list`
+- `integrations.get`
+- `history.list`
+- `sync.preview`
 
-The schema folder is split by domain concern (`integration.ts`, `history.ts`,
-`entities.ts`, …) so each file has one responsibility.
+Each endpoint declares only metadata + existing schema references:
+- `path`
+- `method`
+- `params` / `query` / `input` (when needed)
+- `output`
 
-### ts-rest for the contract layer
+### 3) better-fetch schema is a thin adapter
+`fetch-schema.ts` maps contract entries into `createSchema(...)` keys. No duplicated large schema literals.
 
-We evaluated several options for a type-safe REST client:
+### 4) Client uses throw-based errors for TanStack Query
+`client.ts` config:
+- `baseURL: https://portier-takehometest.onrender.com`
+- `schema: fetchSchema`
+- `throw: true`
 
-| Library | Verdict |
-|---|---|
-| **openapi-fetch** | Excellent but requires an OpenAPI YAML spec as input. Our source of truth is Zod schemas, not YAML. Going Zod → OpenAPI YAML → TS types is a circular build pipeline that doubles the maintenance surface. |
-| **oRPC** | First-class TanStack Query integration, but its client speaks the oRPC RPC protocol. It cannot call a plain REST API — it needs an oRPC server on the other end. Not applicable here. |
-| **zodios** | Last release was ~3 years ago. Abandoned. |
-| **better-fetch** | Typed fetch wrapper but no React Query integration. You write manual `queryOptions` wrappers — more boilerplate than ts-rest, not less. |
-| **ts-rest** | Contract-first, Zod-native, ships `@ts-rest/react-query` with `initTsrReactQuery` that produces fully-typed `useSuspenseQuery` hooks directly from contracts. Designed for exactly this pattern: client consuming an external REST API with Zod schemas as the type source. |
+With `throw: true`, failed responses throw `ApiError` (`BetterFetchError`) so TanStack Query receives errors natively via thrown promises.
 
-We pin `3.53.0-rc.1` specifically because it adds Standard Schema support,
-which is required for compatibility with Zod v4 (the version in use across this
-monorepo). Running 3.52.x against Zod v4 produces subtle type inference failures.
+## QueryOptions convention
 
-### MSW owns all seed/mock data
+All query factories accept a **single options object**:
+- `input`: API-specific input data (route params/query IDs)
+- plus all standard TanStack query options (`staleTime`, `enabled`, `gcTime`, `retry`, etc.)
 
-Mock data lives in `src/msw/data/` and is served by MSW handlers in development.
-There are no `createInitial*` functions in the React runtime — components fetch
-data through the query layer just as they would in production. This means the
-dev and prod data paths are identical; only the transport differs.
+This avoids manual spread at call sites.
 
-### One client factory, `baseUrl` injected by the consumer
-
-`createApiClient(baseUrl)` in `src/client.ts` binds `apiContract` to a ts-rest
-React Query client. The `baseUrl` is the only environment-specific value and is
-supplied by the web app at startup. `packages/api` itself has no opinion about
-where the API lives.
-
-## Usage
-
-### Setup (once per app)
+### Example
 
 ```ts
-// apps/web/src/lib/api.ts
-import { createApiClient } from '@portier-sync/api/client'
-
-export const tsr = createApiClient('https://portier-takehometest.onrender.com')
-```
-
-### Queries — queryOptions pattern (recommended)
-
-TanStack Query encourages defining query options outside components so the same
-descriptor can be passed to `useSuspenseQuery`, `prefetchQuery`,
-`ensureQueryData`, and `queryClient.invalidateQueries` without duplicating keys.
-
-ts-rest does not expose a native `.queryOptions()` factory — it is hook-first.
-To follow the colocation pattern, compose with the raw `.query` fetcher and
-TanStack's `queryOptions()` helper. You manage query keys yourself.
-
-**Why this is required:** ts-rest's `useSuspenseQuery` hooks manage keys internally,
-but `invalidateQueries` is not wrapped per-route. You cannot invalidate a query
-you don't have the key for. Therefore, for any data that needs invalidation after
-mutations, you must own the key via queryOptions.
-
-```ts
-// apps/web/src/lib/queries/integrations.ts
-import { queryOptions } from '@tanstack/react-query'
-import { tsr } from '@/lib/api'
-
-export const integrationsListQueryOptions = () =>
-  queryOptions({
-    queryKey: ['integrations'],
-    queryFn: () => tsr.integrations.list.query({}),
-  })
-
-export const integrationDetailQueryOptions = (id: string) =>
-  queryOptions({
-    queryKey: ['integrations', id],
-    queryFn: () => tsr.integrations.get.query({ params: { id } }),
-  })
-
-export const integrationHistoryQueryOptions = (id: string) =>
-  queryOptions({
-    queryKey: ['integrations', id, 'history'],
-    queryFn: () => tsr.history.list.query({ params: { id } }),
-  })
-```
-
-```tsx
-// in a component
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { integrationDetailQueryOptions } from '@/lib/queries/integrations'
+import {
+  integrationsListQueryOptions,
+  integrationDetailQueryOptions,
+  integrationsKeys,
+} from '@portier-sync/api'
 
-const { data } = useSuspenseQuery(integrationDetailQueryOptions(id))
-```
+const list = useSuspenseQuery(
+  integrationsListQueryOptions({ staleTime: 30_000 })
+)
 
-### Hook pattern (only for static data)
+const detail = useSuspenseQuery(
+  integrationDetailQueryOptions({
+    input: { id: '4' },
+    staleTime: 30_000,
+  })
+)
 
-The `tsr.route.useSuspenseQuery({})` hooks are fine for data that never needs
-manual invalidation — truly static reference data. Do not use for any data
-that might be mutated and need cache refresh.
-
-```tsx
-// OK for static data only
-const { data } = tsr.integrations.list.useSuspenseQuery({})
-
-// WRONG — this creates an orphaned cache entry you cannot invalidate
-const { data } = tsr.integrations.get.useSuspenseQuery({ queryData: { params: { id } } })
-```
-
-
-### Mutations
-
-POST/PUT/DELETE routes expose `useMutation`. Variables type is inferred from the
-contract — no manual typing needed. Invalidate related queries in `onSuccess`.
-
-```tsx
-import { tsr } from '@/lib/api'
-import { useQueryClient } from '@tanstack/react-query'
-import { integrationDetailQueryOptions } from '@/api/integrations.query'
-
-const queryClient = useQueryClient()
-
-const { mutate, isPending } = tsr.sync.triggerSync.useMutation({
-  onSuccess: () => {
-    // invalidate so detail + list re-fetch fresh data
-    queryClient.invalidateQueries({ queryKey: ['integrations'] })
-  },
+// invalidate detail
+queryClient.invalidateQueries({
+  queryKey: integrationsKeys.detail('4'),
 })
-
-// call it
-mutate({ body: { application_id: integration.slug } })
 ```
 
-### Known limitation
+## MSW vs OG API
 
-ts-rest's `queryOptions` gap is intentional — oRPC exposes `.queryOptions()`
-natively because it owns the transport layer end-to-end. ts-rest is a contract
-adapter over plain fetch; the queryOptions pattern requires the manual key
-management shown above. For this project the trade-off is acceptable: we have
-Zod schemas as source of truth (ruling out openapi-fetch) and no oRPC server
-(ruling out oRPC). The manual key approach is explicit and fully type-safe.
+### Development
+MSW can mock all routes.
+
+### Demo/Prod-like behavior
+Disable `syncHandlers` so sync preview calls the OG API endpoint:
+`GET /api/v1/data/sync?application_id=...`
+
+Integrations/history remain mock-backed UI scaffolding unless a real backend endpoint is introduced.

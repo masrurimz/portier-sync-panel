@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./contract": "./src/contract/index.ts",
+    "./contract": "./src/api-contract.ts",
     "./schema": "./src/schema/index.ts",
     "./msw": "./src/msw/index.ts",
     "./msw/browser": "./src/msw/browser.ts",
@@ -15,8 +15,7 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@ts-rest/core": "catalog:",
-    "@ts-rest/react-query": "catalog:",
+"@better-fetch/fetch": "catalog:",
     "@tanstack/react-query": "catalog:",
     "msw": "catalog:",
     "zod": "catalog:"
