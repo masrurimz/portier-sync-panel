@@ -1,5 +1,9 @@
 {
   "name": "@portier-sync/config",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "check:types": "echo \"@portier-sync/config has no TS sources to typecheck\"",
+    "check:lint": "echo \"@portier-sync/config has no lintable sources\""
+  }
 }

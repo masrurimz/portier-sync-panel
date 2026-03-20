@@ -5,7 +5,9 @@
   "scripts": {
     "build": "vite build",
     "serve": "vite preview",
-    "dev:bare": "vite dev"
+    "dev:bare": "vite dev",
+    "check:types": "tsc --noEmit -p tsconfig.json",
+    "check:lint": "oxlint src"
   },
   "dependencies": {
     "@portier-sync/api": "workspace:*",

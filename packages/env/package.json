@@ -7,6 +7,10 @@
     "./server": "./src/server.ts",
     "./web": "./src/web.ts"
   },
+  "scripts": {
+    "check:types": "tsc --noEmit -p tsconfig.json",
+    "check:lint": "oxlint src"
+  },
   "dependencies": {
     "@t3-oss/env-core": "^0.13.1",
     "dotenv": "catalog:",

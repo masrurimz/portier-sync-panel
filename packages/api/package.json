@@ -12,7 +12,8 @@
     "./client": "./src/client.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check:types": "tsc --noEmit",
+    "check:lint": "oxlint src"
   },
   "dependencies": {
 "@better-fetch/fetch": "catalog:",

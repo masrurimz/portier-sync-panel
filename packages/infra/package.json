@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "alchemy dev",
     "deploy": "alchemy deploy",
-    "destroy": "alchemy destroy"
+    "destroy": "alchemy destroy",
+    "check:types": "tsc --noEmit --skipLibCheck --module ESNext --moduleResolution bundler --target ESNext alchemy.run.ts",
+    "check:lint": "oxlint alchemy.run.ts"
   },
   "dependencies": {
     "dotenv": "catalog:",

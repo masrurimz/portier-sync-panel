@@ -28,11 +28,12 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
-    "check-types": "turbo check-types",
+    "check:types": "turbo check:types",
+    "check:lint": "turbo check:lint",
     "dev:web": "turbo -F web dev",
     "deploy": "turbo -F @portier-sync/infra deploy",
     "destroy": "turbo -F @portier-sync/infra destroy",
-    "check": "oxlint && oxfmt --write"
+    "check": "npm run check:lint && oxfmt --write"
   },
   "dependencies": {
     "@portier-sync/env": "workspace:*",
