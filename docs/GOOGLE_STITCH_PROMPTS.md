@@ -1,339 +1,89 @@
-# Google Stitch Prompts for Integration Sync Panel
+# Google Stitch Prompt (Product Direction Only)
 
-## Intent
+Use this when prompting Stitch. It defines what the product must do and how users should experience it, without dictating layout or visual style.
 
-This prompt set is meant to steer Google Stitch with strong product, UX, and workflow direction while leaving visual exploration open.
-
-The goal is not to hand-design the interface in the prompt.
-The goal is to give Stitch enough product context, decision structure, and UX constraints so it can produce high-fidelity work that is distinctive, thoughtful, and aligned with the take-home.
-
----
-
-## Best-Practice Framing for Stitch
-
-Use Stitch like this:
-
-1. Start with one strong product brief.
-2. Ask for multiple high-fidelity directions, not one fixed visual system.
-3. Choose the strongest direction.
-4. Refine one screen or one concern at a time.
-5. Improve the core workflow first, then raise polish.
-
-What to avoid:
-- giant prompts that specify every visual detail
-- generic phrases like "modern SaaS dashboard"
-- mixing layout changes, feature additions, and style changes in one follow-up
-- forcing Stitch into bland enterprise defaults
-
-What to emphasize:
-- information hierarchy
-- decision support
-- risky-action UX
-- state handling
-- clarity during review and conflict resolution
-- auditability and trust
-
-Recommended target scope for this take-home:
-- 2 routes only: Integrations -> Integration Detail
-- use tabs, row expanders, drawers, and modals instead of turning every state into a new page
-- keep the main loop easy to understand: Sync -> Preview -> Resolve if needed -> Apply -> History
-- favor dense, table-first layouts over card dashboards
-
----
-
-## Recommended UX Target
-
-Keep the product to 2 primary routes:
-
-1. Integrations
-- A full-width integrations table, not cards and not a sidebar
-- Each row shows integration name, status, last sync, last result, conflicts, and version
-- Conflicts should be highly visible here so users instantly know which integration needs attention
-- Include one compact row of controls above the table: search + status filter
-
-2. Integration Detail
-- One page with a compact summary header and tabbed content
-- Sync Now lives here as the primary action
-- Use tabs to keep the UX structured without adding extra pages
-- Recommended tabs: Preview, History, Conflicts
-
-Recommended layout patterns:
-- top bar for app title only, no persistent left navigation for integrations
-- full-width table on the list page
-- compact header strip on detail page with integration name, status, last sync, and actions
-- table-first content inside tabs
-- row expanders or drawers for details
-
-Conflict resolution should not become a sprawling separate mini-app.
-Instead:
-- show a conflicts table or list inside the Conflicts tab
-- let users select a conflict and inspect details below the table or in a drawer
-- resolve per field using a simple side-by-side comparison with clear winner selection
-
-What should not become separate full screens:
-- preview details
-- confirm as a full page
-- history detail page
-- result page if it can be inline or modal
-- integrations list inside a sidebar
-
-Core happy path:
-1. User sees integrations list and notices sync health/conflicts
-2. User opens one integration
-3. User clicks Sync Now
-4. System loads preview in the Preview tab
-5. If there are no conflicts, user reviews summary and applies changes from the same page
-6. If there are conflicts, user opens the Conflicts tab, resolves them, then confirms
-7. Result is shown inline or in a modal and the run appears in History
-
-This is the simplest complete product shape for the brief.
-
----
-
-## Primary Stitch Prompt
-
-Paste this into Google Stitch:
+## Primary Prompt
 
 ```text
-You are designing a high-fidelity Portier Sync Panel for a frontend take-home test.
+Design a high-fidelity web app called "Portier Integration Sync Panel".
 
-This is not a marketing site and not a generic SaaS dashboard. It is a safety-critical product workflow for reviewing and applying sync changes from external systems into an internal source of truth.
+Do not optimize for flashy visuals. Optimize for UX clarity, trust, and decision-making in a sync workflow.
 
-Your job is to explore ambitious, high-quality product UI directions while keeping the workflow safe, transparent, reviewable, and auditable.
+Product purpose:
+- Manage sync across multiple integrations (Salesforce, HubSpot, Stripe, Slack, Zendesk, Intercom)
+- Let users run sync, review incoming changes, resolve conflicts safely, and inspect history
 
-Primary product goal:
-- Help operators sync data from third-party integrations into Portier with confidence.
-- The user must always understand what will change, why it changed, what is risky, what needs review, and what happened after apply.
+Core problem to solve:
+- The same field can be changed in both systems at the same time
+- The app must not silently choose a winner when conflict is ambiguous
+- Users must be able to review, resolve, and confirm intentionally
 
-Target users:
-- Enterprise IT admins
-- Operations managers
-- Internal staff responsible for reviewing and approving data changes
+Concrete conflict example:
+- Portier user email: john@company.com
+- HubSpot user email: j.smith@newdomain.com
+- User must choose which value to keep
 
-Core problem:
-- Data can change in both Portier and an external integration at the same time.
-- The system must not silently overwrite ambiguous values.
-- Users need to preview incoming changes, resolve field-level conflicts, confirm intentionally, and inspect history later.
+Data model context:
+- User fields: name, email, phone, role, status
+- Door fields: name, location, device_id, status, battery_level, last_seen
+- Key fields: key_type, access_start, access_end, status
 
-Concrete example of the problem:
-- A user's email might be updated locally in Portier to john@company.com while HubSpot updates the same user's email to j.smith@newdomain.com.
-- The system cannot safely assume which value is correct.
-- The interface should make this kind of ambiguity obvious, explainable, and resolvable.
+Required product areas from the brief:
+1) Integrations list
+2) Integration sync detail
+3) Sync history and versioning
+4) Conflict resolution
 
-Core entities involved:
-- User
-- Door
-- Key
+Required UX behaviors:
+- Sync Now is the main trigger
+- Show preview of changes before apply
+- Show field-level conflicts with side-by-side values
+- Allow per-field conflict decisions
+- Make merge/apply action explicit and clear
+- Make unresolved conflicts obvious
+- Keep users oriented about what changed, what is pending, and what is final
 
-Likely fields that can appear in preview or conflict resolution:
-- User: name, email, phone, role, status
-- Door: name, location, device_id, status, battery_level, last_seen
-- Key: key_type, access_start, access_end, status
-
-The design should make room for different kinds of field changes:
-- simple scalar changes like email, role, or status
-- operational changes like battery_level or last_seen
-- access-control changes like key_type or access_end
-- potentially destructive or sensitive changes that should feel higher risk than ordinary updates
-
-Integrations to include:
-- Salesforce
-- HubSpot
-- Stripe
-- Slack
-- Zendesk
-- Intercom
-
-Design the product around 2 primary routes:
-
-1. Integrations List
-- Use a dense, full-width data table rather than cards.
-- Show all integrations with status, connection health, attention needed, last sync time, last result, conflicts, and version.
-- Include search/filtering.
-- Support loading, empty, and error states.
-- If an integration has conflicts, make that highly visible in the row itself.
-- Do not place the integrations list inside a left sidebar.
-
-2. Integration Detail
-- Show a compact summary header with integration name, current sync health, last run summary, and configuration context.
-- Include Sync Now as the primary action.
-- Use simple tabs to organize content: Preview, History, Conflicts.
-- Combine detail, latest preview, and history in this same route.
-- Do not split preview and history into unnecessary extra pages.
-
-3. Preview tab inside Integration Detail
-- This is the most important section of the product.
-- After Sync Now, show what will change before anything is applied.
-- Group changes into Added, Updated, Deleted, and Conflicts.
-- Show counts, scope, and risk clearly.
-- Let users inspect individual records and fields.
-- Make the experience feel like a review checkpoint, not a background operation.
-- Prefer a compact table/list summary over oversized visual widgets.
-- Show examples of realistic changes across User, Door, and Key records so the product does not feel abstract.
-- If there are no conflicts, the user should be able to apply directly from this view.
-
-4. Conflicts tab inside Integration Detail
-- Show a dense list or table of conflicts first.
-- Let the user pick one conflict and inspect its detail below the list or in a drawer.
-- Show side-by-side comparison of Portier value vs integration value.
-- Show provenance or explanation for why something is a conflict.
-- Let users choose a resolution per field.
-- Support bulk decisions when safe, but preserve granular control.
-- Make unresolved conflicts impossible to miss.
-- Block final confirmation if required decisions are missing.
-- Ensure the conflict UI works for fields like user.email, user.role, door.status, door.location, key.status, and key.access_end.
-- Avoid novelty layouts; keep it practical and table-oriented.
-
-5. Confirm and Apply
-- Keep confirmation lightweight and integrated.
-- Summarize exactly what will happen.
-- Make risky consequences legible.
-- Reinforce user confidence before apply.
-- This can be an in-page confirmation state, drawer, or modal rather than a separate screen.
-
-6. Result State
-- Show success, partial success, and failure outcomes.
-- If partial, explain what succeeded, what failed, and what the user should do next.
-- Include retry or follow-up actions.
-- Prefer inline result treatment or modal feedback over creating another large page.
-
-7. History tab inside Integration Detail
-- Show a dense list or table of past sync runs.
-- Include timestamp, source, integration, version, outcome, counts, and drill-down details.
-- Let users inspect what changed and how conflicts were resolved.
-- Make the history feel referenceable and trustworthy.
-- Detailed run inspection can use a row expander, drawer, or modal.
-
-Important states to design explicitly:
-- initial loading
-- empty state
-- no changes detected
-- preview loading
+Required system states to design clearly:
+- loading
+- syncing in progress
+- no changes found
 - conflicts present
 - unresolved conflicts
-- apply in progress
 - success
-- partial success
-- failure with retry
-- stale preview that requires refresh
-- disconnected or expired integration state
+- failure with actionable retry
 
-Error-handling requirements:
-- 4xx should read as configuration/request issues
-- 500 should read as internal server problems
-- 502 should read as integration provider unavailable or down
-- errors should be understandable and actionable
-- include retry, technical details, and clear recovery paths where appropriate
+Error handling states to include:
+- 4xx (configuration/request issues)
+- 500 (internal error)
+- 502 (integration provider unavailable)
 
-API and data constraints:
-- Only Sync Now must call the real API endpoint
+API constraints:
 - Endpoint: https://portier-takehometest.onrender.com/api/v1/data/sync
-- Request requires application_id
-- Data used for preview, conflict resolution, and sync confirmation should come from this API interaction
-- Other data like integration catalog, history, and historical versions can be mocked or locally modeled
+- Sync Now calls this API
+- Data for preview/conflict/confirmation comes from this API response
+- Other data can be mocked
 
-Assumptions you may make:
-- The sync preview can include a run id, timestamp, change summary, and a list of field-level changes
-- Conflict items can include enough detail to compare local vs external values
-- Apply can be represented as a client-side confirmation step if no backend apply endpoint exists
-- History can be mocked if it remains consistent with the workflow
-
-Non-negotiable UX principles:
-- review before apply
-- explicit decision support
-- auditability and traceability
-- confidence during risky actions
-- high clarity in states and outcomes
-
-Visual exploration requirements:
-- Create 3 distinct high-fidelity design directions for the same simple 2-route product flow
-- Each direction should have a different layout approach and information hierarchy, not just different colors
-- Do not default to a cookie-cutter enterprise dashboard
-- Do not use a left sidebar for the integrations list
-- Do not use card-grid dashboard patterns unless there is a very strong reason
-- Make the UI feel intentional, premium, and product-real
-- Use the visual system to support trust, review, and decision-making
-- Keep the UI functional, compact, and implementation-friendly
-
-Output requirements:
-- Produce the full set of screens for each direction: Integrations List and Integration Detail
-- Show how Preview, Conflicts, History, confirmation, and result states live within the detail route
-- For each direction, briefly explain what makes its UX approach distinct
-- Keep the design high-fidelity and presentation-ready
-- Optimize for thoughtful product design, not just pretty screens
+Output expectation:
+- Provide one cohesive, implementation-friendly UI direction
+- Keep flow simple and practical
+- Prioritize usability and functional clarity over decorative complexity
+- Ensure the design supports safe, transparent, reviewable, auditable sync operations
 ```
 
----
+## Refinement Prompt (Optional)
 
-## Follow-Up Prompt 1: Pick and Strengthen One Direction
-
-Use after Stitch gives you multiple directions:
+Use this after Stitch generates the first result.
 
 ```text
-Take the strongest direction and refine it further.
+Refine this design to be simpler and more functional.
 
-Do not redesign the whole product from scratch.
-Keep the core structure, but improve the quality of the Sync Preview and Conflict Resolution experience first.
+Reduce visual noise and wasted space.
+Improve navigation clarity and decision flow for sync and conflict resolution.
+Keep all required functionality, but remove unnecessary complexity.
 
-Make the review flow feel more like a decision workbench:
-- clearer hierarchy between summary, changes, and conflicts
-- stronger distinction between safe changes and risky ones
-- easier field-level comparison
-- better visibility into what is unresolved
-- stronger confidence before confirm
-
-Make this feel like the heart of the product.
+Focus on:
+- better readability of change review
+- clearer conflict decision points
+- clearer status and error communication
+- faster path from Sync Now to confident apply
 ```
-
----
-
-## Follow-Up Prompt 2: Improve States
-
-```text
-Now improve the important states across the chosen direction.
-
-Make loading, empty, no-changes, stale-preview, partial-success, error, retry, disconnected integration, and apply-in-progress states feel fully designed rather than afterthoughts.
-
-The user should always know:
-- what is happening
-- whether action is required
-- whether it is safe to proceed
-- how to recover if something fails
-```
-
----
-
-## Follow-Up Prompt 3: Raise the Design Quality Without Losing UX
-
-```text
-Now raise the visual quality of this direction.
-
-Do not reduce clarity or turn it into a generic SaaS dashboard.
-Push the interface toward a more distinctive, memorable, premium product design while preserving usability, scannability, and trust.
-
-Increase the sense that this is a serious review-and-approval product, not just a settings page.
-```
-
----
-
-## Follow-Up Prompt 4: Strengthen Auditability
-
-```text
-Refine the design so auditability feels first-class.
-
-History, result, and conflict decisions should feel referenceable later.
-Make it easy to understand what changed, why it changed, who approved it, and what the outcome was.
-
-The design should communicate traceability, not just completion.
-```
-
----
-
-## Submission Fit
-
-This prompt strategy is designed to align with Portier's take-home criteria:
-- thoughtful UX
-- robust handling of states and errors
-- clear separation of sync action, review flow, and history
-- practical architecture implied by the screens
-- strong design without letting aesthetics overpower the product problem
