@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { ApiErrorResponseSchema, ApiSuccessResponseSchema, IntegrationSchema } from '../types.js';
+import { ApiErrorResponseSchema, ApiSuccessResponseSchema, IntegrationSchema } from '../schema/index.js';
 
 const c = initContract();
 

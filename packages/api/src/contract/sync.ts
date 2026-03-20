@@ -4,7 +4,7 @@ import {
   ApiErrorResponseSchema,
   ApiSuccessResponseSchema,
   SyncDataSchema,
-} from "../types.js";
+} from "../schema/index.js";
 
 const c = initContract();
 

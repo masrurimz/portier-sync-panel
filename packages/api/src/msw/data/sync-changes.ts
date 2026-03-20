@@ -1,4 +1,4 @@
-import type { SyncChange } from '../../types.js'
+import type { SyncChange } from '../../schema/index.js'
 
 // Mock sync changes returned by the real API for each integration
 export const mockSyncChanges: Record<string, { applicationName: string; changes: SyncChange[] }> = {
