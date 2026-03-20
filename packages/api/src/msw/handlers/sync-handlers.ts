@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { mockSyncChanges } from '../data/sync-changes.js'
+import { mockIntegrations } from '../data/integrations.js'
 
 const BASE_URL = 'https://portier-takehometest.onrender.com'
 
@@ -8,10 +9,19 @@ export const syncHandlers = [
     const url = new URL(request.url)
     const applicationId = url.searchParams.get('application_id') ?? ''
 
+    // Validate the slug against the integrations list to keep mock data in sync
+    const integration = mockIntegrations.find((i) => i.slug === applicationId)
+    if (!integration) {
+      return HttpResponse.json(
+        { error: 'Not found', code: 'invalid_application_id', message: `No integration found for application_id: ${applicationId}` },
+        { status: 400 }
+      )
+    }
+
     const mockData = mockSyncChanges[applicationId]
     if (!mockData) {
       return HttpResponse.json(
-        { error: 'Not found', code: 'invalid_application_id', message: `No integration found for: ${applicationId}` },
+        { error: 'Not found', code: 'invalid_application_id', message: `No sync data for: ${applicationId}` },
         { status: 400 }
       )
     }
