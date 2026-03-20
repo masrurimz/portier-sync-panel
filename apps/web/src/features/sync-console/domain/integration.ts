@@ -1,5 +1,4 @@
-import type { ApplicationId, Integration } from "../../../lib/api-types";
-import { INTEGRATIONS, formatRelativeTime, getIntegrationById } from "../../../lib/api-types";
+import type { Integration, IntegrationId } from '@portier-sync/api';
 
 export interface IntegrationHealthMeta {
   reliability: string;
@@ -14,38 +13,38 @@ export interface ConsoleMetric {
   hint: string;
 }
 
-export const integrationHealthSeed: Record<ApplicationId, IntegrationHealthMeta> = {
-  salesforce: {
+export const integrationHealthSeed: Record<IntegrationId, IntegrationHealthMeta> = {
+  "1": {
     reliability: "Source healthy • preview available • low-risk updates can be reviewed immediately",
     sourceHealth: "healthy",
     auditRetention: "90 days",
     nextScheduledSync: "Today • 14:00",
   },
-  hubspot: {
+  "2": {
     reliability: "Source healthy • preview fetched • operator review required before apply",
     sourceHealth: "healthy",
     auditRetention: "90 days",
     nextScheduledSync: "Today • 13:30",
   },
-  stripe: {
+  "3": {
     reliability: "Provider degraded • preview could not be refreshed • no new changes applied",
     sourceHealth: "degraded",
     auditRetention: "90 days",
     nextScheduledSync: "Retry in 15 minutes",
   },
-  slack: {
+  "4": {
     reliability: "Live fetch in progress • workspace change set is still loading",
     sourceHealth: "healthy",
     auditRetention: "30 days",
     nextScheduledSync: "Running now",
   },
-  zendesk: {
+  "5": {
     reliability: "Provider timed out • last known review queue preserved for audit only",
     sourceHealth: "timeout",
     auditRetention: "90 days",
     nextScheduledSync: "Retry in 30 minutes",
   },
-  intercom: {
+  "6": {
     reliability: "Source healthy • last batch completed with no unresolved conflicts",
     sourceHealth: "healthy",
     auditRetention: "60 days",
@@ -53,20 +52,25 @@ export const integrationHealthSeed: Record<ApplicationId, IntegrationHealthMeta>
   },
 };
 
-export function createInitialIntegrations(): Integration[] {
-  return INTEGRATIONS.map((integration) => ({ ...integration }));
-}
-
-export function requireIntegration(integrationId: ApplicationId) {
-  const integration = getIntegrationById(integrationId);
-  if (!integration) {
-    throw new Error(`Unknown integration: ${integrationId}`);
+export function formatRelativeTime(date: Date | null): string {
+  if (!date) return 'Never';
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    if (diffHours === 0) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+    }
+    return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
   }
-  return integration;
+  if (diffDays === 1) return '1 day ago';
+  return `${diffDays} days ago`;
 }
 
-export function findIntegration(integrations: Integration[], integrationId: ApplicationId) {
-  return integrations.find((item) => item.id === integrationId) ?? requireIntegration(integrationId);
+export function findIntegration(integrations: Integration[], integrationId: IntegrationId) {
+  return integrations.find((item) => item.id === integrationId);
 }
 
 export function buildIntegrationMetrics({

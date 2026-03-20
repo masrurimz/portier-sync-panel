@@ -3,8 +3,6 @@ import { initClient } from "@ts-rest/core";
 import { syncContract } from "@portier-sync/api";
 import type { ApiErrorResponse, SyncData } from "@portier-sync/api";
 
-import type { ApplicationId } from "../../../lib/api-types";
-
 const BASE_URL = "https://portier-takehometest.onrender.com";
 
 // Success response type for the sync preview endpoint (status 200)
@@ -36,4 +34,4 @@ export const syncClient = initClient(syncContract, {
 }) as unknown as SyncClient;
 
 // Legacy query key kept for TanStack Query cache interop (setQueryData in provider).
-export const syncPreviewQueryKey = (integrationId: ApplicationId) => ["sync-preview", integrationId] as const;
+export const syncPreviewQueryKey = (integrationId: string) => ["sync-preview", integrationId] as const;
