@@ -16,8 +16,8 @@ import {
   type ReviewItem,
   type ReviewResolution,
 } from "../domain/review";
-import { normalizeThrownError, type SyncFetchError } from "../api/sync-preview";
-import { syncPreviewQueryKey, useSyncPreviewMutation } from "../api/sync-preview.query";
+import { normalizeApiError, normalizeThrownError, type SyncFetchError } from "../api/sync-preview";
+import { syncPreviewQueryKey, syncClient } from "../api/sync-preview.query";
 
 interface SyncSessionContextValue {
   integrations: Integration[];
@@ -36,7 +36,6 @@ const SyncSessionContext = React.createContext<SyncSessionContextValue | null>(n
 
 export function SyncSessionProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const previewMutation = useSyncPreviewMutation();
   const [integrations, setIntegrations] = React.useState<Integration[]>(() => createInitialIntegrations());
   const [reviewBatches, setReviewBatches] = React.useState<Record<ApplicationId, ReviewBatch>>(() => createInitialReviewBatches());
   const [historyByIntegration, setHistoryByIntegration] = React.useState<Record<ApplicationId, SyncHistoryEntry[]>>(() => createInitialHistories());
@@ -53,9 +52,16 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
       setIntegrations((current) => current.map((item) => (item.id === integrationId ? { ...item, status: "syncing" } : item)));
 
       try {
-        const payload = await previewMutation.mutateAsync(integrationId);
-        const changes = payload.data?.sync_approval?.changes ?? [];
-        const applicationName = payload.data?.sync_approval?.application_name ?? integration.name;
+        const result = await syncClient.preview({
+          query: { application_id: integrationId },
+        });
+        if (result.status !== 200) {
+          throw normalizeApiError(result.status, result.body);
+        }
+        // At this point, result.body is SyncData (status 200)
+        const syncData = result.body;
+        const changes = syncData.data.sync_approval.changes;
+        const applicationName = syncData.data.sync_approval.application_name;
         const batch = buildBatchFromApi(integrationId, integration, changes, applicationName);
 
         setReviewBatches((current) => ({ ...current, [integrationId]: batch }));
@@ -84,7 +90,7 @@ export function SyncSessionProvider({ children }: { children: React.ReactNode })
         setSyncingId(null);
       }
     },
-    [integrations, previewMutation, queryClient],
+    [integrations, queryClient],
   );
 
   const updateReviewDecision = React.useCallback((integrationId: ApplicationId, itemId: string, resolution: ReviewResolution) => {

@@ -1,19 +1,10 @@
-import type { ApiErrorResponse, ApplicationId, SyncChange } from "../../../lib/api-types";
+import type { ApiErrorResponse } from "@portier-sync/api";
 
 export interface SyncFetchError {
   code: string;
   title: string;
   message: string;
   retryable: boolean;
-}
-
-export interface SyncPreviewResponse {
-  data?: {
-    sync_approval?: {
-      application_name?: string;
-      changes?: SyncChange[];
-    };
-  };
 }
 
 export function normalizeApiError(status: number | null, payload?: Partial<ApiErrorResponse>): SyncFetchError {
@@ -54,15 +45,4 @@ export function normalizeThrownError(error: unknown): SyncFetchError {
     message: "The sync preview request could not be completed. Your local data has not changed.",
     retryable: true,
   };
-}
-
-export async function fetchSyncPreview(integrationId: ApplicationId) {
-  const response = await fetch(`https://portier-takehometest.onrender.com/api/v1/data/sync?application_id=${integrationId}`);
-  const body = (await response.json()) as unknown;
-
-  if (!response.ok) {
-    throw normalizeApiError(response.status, body as Partial<ApiErrorResponse>);
-  }
-
-  return body as SyncPreviewResponse;
 }
