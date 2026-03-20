@@ -1,4 +1,9 @@
 import * as React from "react";
+
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+import { integrationsListQueryOptions } from "@portier-sync/api";
+
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Input } from "@portier-sync/ui/components/input";
 import {
@@ -11,12 +16,11 @@ import {
 } from "@portier-sync/ui/components/table";
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
-import { formatRelativeTime } from "../../../lib/api-types";
-import { useSyncConsole } from "../../../lib/sync-console-store";
 import { LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection, DataPoint } from "../shared/ui";
+import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../domain/integration";
 
 export function OverviewPage() {
-  const { integrations, getOverviewMetrics, getPriorityIntegrations, getPendingReviewCount } = useSyncConsole();
+  const { data: integrations } = useSuspenseQuery(integrationsListQueryOptions());
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "synced" | "syncing" | "conflict" | "error">("all");
 
@@ -26,7 +30,7 @@ export function OverviewPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const priorityItems = getPriorityIntegrations();
+  const priorityItems = getPriorityIntegrations(integrations);
 
   return (
     <PageShell
@@ -36,7 +40,7 @@ export function OverviewPage() {
       actions={undefined}
     >
 
-      <MetricGrid metrics={getOverviewMetrics()} />
+      <MetricGrid metrics={buildOverviewMetrics(integrations)} />
 
       {priorityItems.length > 0 && (
         <SurfaceSection
@@ -63,7 +67,8 @@ export function OverviewPage() {
                     <StatusBadge status={integration.status} />
                   </div>
                   <div className="grid gap-2 md:grid-cols-3">
-                    <DataPoint label="Pending review" value={`${getPendingReviewCount(integration.id)} fields`} />
+                    {/* TODO: Wire pending review count from API when available */}
+                    <DataPoint label="Pending review" value="0 fields" />
                     <DataPoint label="Last sync" value={formatRelativeTime(integration.lastSynced)} />
                     <DataPoint label="Version" value={integration.version} />
                   </div>
@@ -145,7 +150,8 @@ export function OverviewPage() {
                 <TableCell>
                   <StatusBadge status={integration.status} />
                 </TableCell>
-                <TableCell>{getPendingReviewCount(integration.id)}</TableCell>
+                {/* TODO: Wire pending review count from API when available */}
+                <TableCell>0</TableCell>
                 <TableCell>{formatRelativeTime(integration.lastSynced)}</TableCell>
                 <TableCell>{integration.version}</TableCell>
                 <TableCell className="text-right">
