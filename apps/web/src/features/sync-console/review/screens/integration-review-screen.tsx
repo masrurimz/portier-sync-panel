@@ -1,1 +1,1 @@
-export { ReviewPage as IntegrationReviewScreen } from "../../../../components/sync-console/review-page";
+export { ReviewPage as IntegrationReviewScreen } from '../page';

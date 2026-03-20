@@ -1,1 +1,1 @@
-export { DetailPage as IntegrationDetailScreen } from "../../../../components/sync-console/detail-page";
+export { DetailPage as IntegrationDetailScreen } from '../page';

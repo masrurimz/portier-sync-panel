@@ -1,1 +1,1 @@
-export { HistoryPage as IntegrationHistoryScreen } from "../../../../components/sync-console/history-page";
+export { HistoryPage as IntegrationHistoryScreen } from '../page';

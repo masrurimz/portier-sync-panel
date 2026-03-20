@@ -9,7 +9,7 @@ import {
 import { buttonVariants } from "@portier-sync/ui/components/button";
 import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
 
-import { StatusBadge } from "../components/sync-console/shared";
+import { StatusBadge } from "../features/sync-console";
 import type { ApplicationId } from "../lib/api-types";
 import { getIntegrationById } from "../lib/api-types";
 

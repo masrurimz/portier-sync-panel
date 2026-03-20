@@ -1,1 +1,1 @@
-export { OverviewPage as OverviewScreen } from "../../../../components/sync-console/overview-page";
+export { OverviewPage as OverviewScreen } from '../page';
