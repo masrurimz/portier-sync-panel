@@ -1,9 +1,7 @@
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
-import { z } from 'zod'
 
 import type { ReviewItem } from '../../-domain/review'
 import { MergedValueField } from './fields/merged-value-field'
-import { NotesField } from './fields/notes-field'
 import { ResolutionChoiceField } from './fields/resolution-choice-field'
 import { FormProgress } from './form-progress'
 import { SubmitButton } from './submit-button'
@@ -17,7 +15,6 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     ResolutionChoiceField,
     MergedValueField,
-    NotesField,
   },
   formComponents: {
     SubmitButton,
@@ -25,18 +22,9 @@ export const { useAppForm, withForm } = createFormHook({
   },
 })
 
-export const resolutionFormSchema = z.object({
-  kind: z.enum(['local', 'external', 'merged']).optional(),
-  mergedValue: z.string(),
-  notes: z.string().optional(),
-})
-
-export type ResolutionFormValues = z.infer<typeof resolutionFormSchema>
-
-export function toResolutionFormDefaults(item: ReviewItem): ResolutionFormValues {
+export function toResolutionFormDefaults(item: ReviewItem) {
   return {
     kind: item.resolution.kind,
     mergedValue: item.resolution.mergedValue ?? item.externalValue ?? item.localValue ?? '',
-    notes: '',
   }
 }
