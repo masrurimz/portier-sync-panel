@@ -3,7 +3,7 @@ import type { LocalSnapshotRecord } from '../msw/data/local-snapshots';
 
 export interface ApplyLocalReviewInput {
   integrationId: string;
-  proposedVersion: string;
+  expectedRevision: number; // CAS token: the revision client read at fetch time
   selectedCount: number;
   conflictResolutionCount: number;
   applicationName: string;
@@ -34,13 +34,16 @@ export async function applyLocalReview(
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      proposedVersion: input.proposedVersion,
+      expectedRevision: input.expectedRevision,
       selectedCount: input.selectedCount,
       conflictResolutionCount: input.conflictResolutionCount,
       applicationName: input.applicationName,
     }),
   });
   if (!res.ok) {
+    if (res.status === 409) {
+      throw new Error('applyLocalReview: conflict — snapshot revision changed since fetch');
+    }
     throw new Error(`applyLocalReview failed: ${res.status}`);
   }
   const json = (await res.json()) as { data: ApplyLocalReviewResult };

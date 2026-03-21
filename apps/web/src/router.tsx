@@ -8,7 +8,7 @@ import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
 const mswReady =
-  import.meta.env.DEV && typeof window !== "undefined"
+  typeof window !== "undefined"
     ? import("./mocks/browser").then(({ worker }) => worker.start({ onUnhandledRequest: "bypass" }))
     : Promise.resolve();
 

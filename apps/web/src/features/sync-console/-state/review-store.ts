@@ -111,8 +111,7 @@ export const useReviewStore = create<ReviewStore>()(
         const current = state.draftSessions[integrationId];
         state.draftSessions[integrationId] = {
           integrationId,
-          baseVersion: current?.baseVersion ?? integration.version,
-          proposedVersion: current?.proposedVersion ?? "",
+baseRevision: current?.baseRevision ?? 0,
           status: "fetching",
           items: current?.items ?? [],
           pendingCount: current?.pendingCount ?? 0,
@@ -127,8 +126,8 @@ export const useReviewStore = create<ReviewStore>()(
       updateIntegrationCache(queryClient, integrationId, (c) => ({ ...c, status: "syncing" }));
 
       try {
-        // Read current local snapshot to use as baseVersion.
-        // baseVersion = local DB version at fetch time, not the remote version.
+// Read current local snapshot to use as baseRevision.
+// baseRevision = local DB revision at fetch time, not the remote version.
         const localSnapshot = await getLocalSnapshot(integrationId);
 
         // Fetch remote preview. $fetch throws on HTTP errors.
@@ -144,8 +143,7 @@ export const useReviewStore = create<ReviewStore>()(
 
         const draft: DraftSession = {
           integrationId,
-          baseVersion: localSnapshot.localVersion,
-          proposedVersion: batch.versionAfter,
+baseRevision: localSnapshot.revision,
           status: "ready",
           items: batch.items,
           applicationName,
@@ -219,8 +217,8 @@ export const useReviewStore = create<ReviewStore>()(
         return false;
       }
 
-      // Stale check: draft is only valid while baseVersion matches the current local snapshot.
-      let localSnapshot;
+// Stale check: draft is only valid while baseRevision matches the current local snapshot.
+let localSnapshot;
       try {
         localSnapshot = await getLocalSnapshot(integrationId);
       } catch {
@@ -230,7 +228,7 @@ export const useReviewStore = create<ReviewStore>()(
         return false;
       }
 
-      if (draft.baseVersion !== localSnapshot.localVersion) {
+if (draft.baseRevision !== localSnapshot.revision) {
         const err: SyncFetchError = {
           code: "stale_batch",
           title: "Review is out of date",
@@ -267,24 +265,24 @@ export const useReviewStore = create<ReviewStore>()(
       });
 
       try {
-        const conflictResolutionCount = reviewed.filter((i) => i.resolution.kind === "local").length;
-        const { snapshot } = await applyLocalReview({
-          integrationId,
-          proposedVersion: draft.proposedVersion,
-          selectedCount: reviewed.length,
-          conflictResolutionCount,
-          applicationName: draft.applicationName,
-        });
+const conflictResolutionCount = reviewed.filter((i) => i.resolution.kind === "local").length;
+await applyLocalReview({
+integrationId,
+expectedRevision: draft.baseRevision,
+selectedCount: reviewed.length,
+conflictResolutionCount,
+applicationName: draft.applicationName,
+});
 
-        // Update integration query cache with new local version.
-        // Do NOT inject into remote history cache — local audit entry is in the MSW local DB,
-        // served by getLocalHistory (consumed by the history page in bead .14).
-        updateIntegrationCache(queryClient, integrationId, (c) => ({
-          ...c,
-          version: snapshot.localVersion,
-          status: "synced",
-          lastSynced: new Date(),
-        }));
+// Update integration query cache with new status.
+// Do NOT inject into remote history cache — local audit entry is in the MSW local DB,
+// served by getLocalHistory (consumed by the history page in bead .14).
+// version intentionally omitted: integration.version is remote-only metadata.
+updateIntegrationCache(queryClient, integrationId, (c) => ({
+...c,
+status: "synced",
+lastSynced: new Date(),
+}));
 
         set((state) => {
           const d = state.draftSessions[integrationId];

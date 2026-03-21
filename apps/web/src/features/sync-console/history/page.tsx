@@ -83,7 +83,9 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
             <div className="flex flex-col gap-3">
               {timeline.map((entry) => {
                 const flagged = entry.summary.toLowerCase().includes("error") || entry.summary.toLowerCase().includes("paused");
-                const versionDisplay = entry.resultVersion ?? entry.remoteVersion ?? "—";
+                const versionDisplay = entry.localRevision != null
+                  ? `r${entry.localRevision}`
+                  : (entry.resultVersion ?? entry.remoteVersion ?? "—");
                 const sourceLabel = entry.origin === "local" ? "Applied locally" : entry.eventType === "remote-history" ? "Remote system" : "Preview";
                 return (
                   <button

@@ -185,7 +185,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
                 <DataPoint label="Current version" value={integration.version} />
                 <DataPoint label="Last synced" value={formatRelativeTime(integration.lastSynced)} />
                 <DataPoint label="Pending review" value={`${pendingCount} fields`} />
-                <DataPoint label="Local version" value={localSnapshot?.localVersion ?? integration.version} />
+                <DataPoint label="Local revision" value={localSnapshot ? `r${localSnapshot.revision}` : '—'} />
                 <DataPoint label="Local records" value={localSnapshot ? localSnapshot.recordCount.toLocaleString("en-US") : "—"} />
                 <DataPoint label="Local updated" value={localSnapshot ? formatRelativeTime(new Date(localSnapshot.updatedAt)) : "—"} />
               </CardContent>

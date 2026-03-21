@@ -24,8 +24,6 @@ export interface ReviewBatch {
   integrationId: IntegrationId;
   applicationName: string;
   source: "seed" | "live";
-  versionBefore: string;
-  versionAfter: string;
   estimatedDuration: string;
   fetchedAt: string;
   items: ReviewItem[];
@@ -63,7 +61,7 @@ function toFieldLabel(fieldName: string) {
     .join(" ");
 }
 
-export function buildBatchFromApi(integrationId: IntegrationId, integration: Integration, changes: SyncChange[], applicationName: string): ReviewBatch {
+export function buildBatchFromApi(integrationId: IntegrationId, _integration: Integration, changes: SyncChange[], applicationName: string): ReviewBatch {
   // Filter out rows where values are equal - they don't need review
   const filteredChanges = changes.filter((c) => (c.current_value ?? null) !== (c.new_value ?? null));
 
@@ -87,20 +85,10 @@ export function buildBatchFromApi(integrationId: IntegrationId, integration: Int
     integrationId,
     applicationName,
     source: "live",
-    versionBefore: integration.version,
-    versionAfter: bumpVersion(integration.version),
     estimatedDuration: `${Math.max(16, items.length * 5)}s`,
     fetchedAt: new Date().toISOString(),
     items,
   };
-}
-
-export function bumpVersion(version: string) {
-  // Handle both 'v2.4.1' and '2.4.1' formats
-  const match = /v?(\d+)\.(\d+)\.(\d+)/.exec(version);
-  if (!match) return version;
-  const prefix = version.startsWith('v') ? 'v' : '';
-  return `${prefix}${match[1]}.${match[2]}.${Number(match[3]) + 1}`;
 }
 
 /**
@@ -136,10 +124,10 @@ export function getPreviewLines(batch: { items: ReviewItem[] }) {
 
 // LocalSnapshot: current locally-accepted state for one integration.
 // Source: MSW-backed local DB (packages/api/src/msw/).
-// Resets on app start. localVersion advances with each local apply.
+// Resets on app start. Revision advances with each local apply.
 export interface LocalSnapshot {
   integrationId: IntegrationId;
-  localVersion: string;
+  revision: number;
   recordCount: number;
   updatedAt: string; // ISO string
 }
@@ -149,8 +137,7 @@ export interface LocalSnapshot {
 // Invariant: items here are the raw remote payload, not operator decisions.
 export interface PreviewSession {
   integrationId: IntegrationId;
-  baseVersion: string; // localVersion at time of fetch
-  proposedVersion: string;
+baseRevision: number; // local snapshot revision at fetch time
   fetchedAt: string; // ISO string
   applicationName: string;
   source: 'remote';
@@ -168,12 +155,11 @@ export type DraftStatus =
   | 'failed';
 
 // DraftSession: mutable operator work derived from a PreviewSession.
-// Invariant: valid only while LocalSnapshot.localVersion === DraftSession.baseVersion.
-// When baseVersion diverges, status becomes 'stale' and apply is blocked.
+// Invariant: valid only while LocalSnapshot.revision === DraftSession.baseRevision.
+// When baseRevision diverges, status becomes 'stale' and apply is blocked.
 export interface DraftSession {
   integrationId: IntegrationId;
-  baseVersion: string;
-  proposedVersion: string;
+  baseRevision: number; // local snapshot revision at fetch time; CAS token for apply
   status: DraftStatus;
   items: ReviewItem[]; // mutable: operator may change resolution
   pendingCount: number; // items without resolution.kind

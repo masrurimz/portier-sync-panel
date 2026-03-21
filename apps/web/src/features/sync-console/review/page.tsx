@@ -157,8 +157,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
           <div className="rounded-2xl border border-border/70 bg-muted/20 px-5 py-4">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
               <span><span className="font-medium text-foreground">{draft.applicationName}</span> — remote preview</span>
-              <span>Base version: <span className="font-mono">{draft.baseVersion}</span></span>
-              <span>Proposed: <span className="font-mono">{draft.proposedVersion}</span></span>
+              <span>Local revision: <span className="font-mono">r{draft.baseRevision}</span></span>
               <span>Fetched {draft.fetchedAt ? new Date(draft.fetchedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'pending'}</span>
             </div>
           </div>

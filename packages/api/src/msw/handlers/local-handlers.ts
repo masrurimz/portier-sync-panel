@@ -4,7 +4,8 @@ import { localAuditLog } from '../data/local-history';
 import type { AuditEntry } from '../../schema/index';
 
 interface ApplyReviewBody {
-  proposedVersion: string;
+  // CAS token: must equal the snapshot's current revision or the handler returns 409.
+  expectedRevision: number;
   selectedCount: number;
   conflictResolutionCount: number;
   applicationName: string;
@@ -39,10 +40,21 @@ export const localHandlers = [
     }
 
     const body = (await request.json()) as ApplyReviewBody;
-    const baseVersion = snapshot.localVersion;
+
+    // CAS check: reject if the snapshot has changed since the draft was created.
+    // This is the authoritative stale-detection boundary; client pre-flight is advisory only.
+    if (body.expectedRevision !== snapshot.revision) {
+      return HttpResponse.json(
+        {
+          error: 'Conflict',
+          message: 'Local snapshot revision has changed. Fetch the latest preview before applying.',
+        },
+        { status: 409 },
+      );
+    }
 
     // Mutate local DB in place — intentional side effect.
-    snapshot.localVersion = body.proposedVersion;
+    snapshot.revision = snapshot.revision + 1;
     snapshot.updatedAt = new Date().toISOString();
     snapshot.recordCount = Math.max(0, snapshot.recordCount + body.selectedCount - body.conflictResolutionCount);
 
@@ -56,9 +68,7 @@ export const localHandlers = [
         ? `${body.conflictResolutionCount} conflict${body.conflictResolutionCount === 1 ? '' : 's'} resolved`
         : undefined,
       timestamp: new Date(),
-      baseVersion,
-      resultVersion: body.proposedVersion,
-      localVersion: body.proposedVersion,
+      localRevision: snapshot.revision,
     };
 
     localAuditLog.unshift(auditEntry);
