@@ -1,3 +1,5 @@
+import type { QueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { TooltipProvider } from "@portier-sync/ui/components/tooltip";
 import { Toaster } from "@portier-sync/ui/components/sonner";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
@@ -7,9 +9,9 @@ import Header from "../components/header";
 
 import appCss from "../index.css?url";
 
-export interface RouterAppContext {}
-
-export const Route = createRootRouteWithContext<RouterAppContext>()({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+}>()({
   head: () => ({
     meta: [
       {
@@ -34,11 +36,18 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
   }),
-
-  component: RootDocument,
+  component: RootComponent,
 });
 
-function RootDocument() {
+function RootComponent() {
+  return (
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  );
+}
+
+function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className="dark">
       <head>
@@ -52,7 +61,7 @@ function RootDocument() {
           <TooltipProvider>
             <div className="relative grid min-h-svh grid-rows-[auto_1fr]">
               <Header />
-              <Outlet />
+              {children}
             </div>
           </TooltipProvider>
         </div>

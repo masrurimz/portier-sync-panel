@@ -1,34 +1,48 @@
-import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { QueryClient } from "@tanstack/react-query";
+import { createRouter } from "@tanstack/react-router";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
-import { AppQueryProvider } from "./app/providers/query-provider";
-import { MSWProvider } from "./app/providers/msw-provider";
 import { AppSyncSessionProvider } from "./app/providers/sync-session-provider";
 import Loader from "./components/loader";
 
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-export const getRouter = () => {
-  const router = createTanStackRouter({
+const mswReady =
+  import.meta.env.DEV && typeof window !== "undefined"
+    ? import("./mocks/browser").then(({ worker }) => worker.start({ onUnhandledRequest: "bypass" }))
+    : Promise.resolve();
+
+export async function getRouter() {
+  await mswReady;
+
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  const router = createRouter({
     routeTree,
+    context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
-    context: {},
+    defaultPreload: "intent",
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
-    Wrap: ({ children }) => (
-      <MSWProvider>
-        <AppQueryProvider>
-          <AppSyncSessionProvider>{children}</AppSyncSessionProvider>
-        </AppQueryProvider>
-      </MSWProvider>
-    ),
+    Wrap: ({ children }) => <AppSyncSessionProvider>{children}</AppSyncSessionProvider>,
   });
+
+  setupRouterSsrQueryIntegration({
+    router,
+    queryClient,
+  });
+
   return router;
-};
+}
 
 declare module "@tanstack/react-router" {
   interface Register {
-    router: ReturnType<typeof getRouter>;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }
