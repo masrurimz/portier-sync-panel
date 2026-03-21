@@ -16,7 +16,7 @@ import {
 } from "@portier-sync/ui/components/table";
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
-import { IntegrationIcon, LinkButton, MetricGrid, OperatorStatusBadge, PageShell, SurfaceSection, DataPoint } from "../-ui/ui";
+import { DataPoint, IntegrationIcon, LinkButton, MetricGrid, OperatorStatusBadge, PageShell, SurfaceSection } from "../-components";
 import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../-domain/integration";
 import type { DraftSession } from "../-domain/review";
 import { useReviewStore } from "../-state/review-store";

@@ -22,9 +22,8 @@ import { Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { useReviewActions, useReviewBatch } from "../-state/review-store";
 import { ReviewResolutionForm } from "./review-resolution-form";
-import { getItemIndicator } from "./-ui/get-item-indicator";
-import { ReviewStat, ValuePanel } from "./-ui";
-import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../-ui/ui";
+import { getItemIndicator, ReviewStat, ValuePanel } from "./-components";
+import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../-components";
 
 export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) {
   const navigate = useNavigate();

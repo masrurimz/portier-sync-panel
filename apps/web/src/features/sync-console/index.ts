@@ -4,4 +4,4 @@ export { OverviewPage } from "./overview/page";
 export { DetailPage } from "./detail/page";
 export { HistoryPage } from "./history/page";
 export { ReviewPage } from "./review/page";
-export { StatusBadge } from "./-ui/ui";
+export { StatusBadge } from "./-components/status-badges";

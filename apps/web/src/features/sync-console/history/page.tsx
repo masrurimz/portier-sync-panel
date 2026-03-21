@@ -14,7 +14,7 @@ import {
   type AuditEntry,
 } from "@portier-sync/api";
 import { remoteHistoryToAuditEntry } from "../-domain/history";
-import { DataPoint, PageShell, SurfaceSection } from "../-ui/ui";
+import { DataPoint, PageShell, SurfaceSection } from "../-components";
 
 export function HistoryPage({ integrationId }: { integrationId: IntegrationId }) {
   const { data: integrations = [] } = useQuery(integrationsListQueryOptions());

@@ -9,7 +9,7 @@ import { getLocalSnapshot, integrationsListQueryOptions, type IntegrationId } fr
 import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
 import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
 import { useIsSyncing, useReviewActions, useReviewBatch, useSyncError } from "../-state/review-store";
-import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-ui/ui";
+import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-components";
 
 export function DetailPage({ integrationId }: { integrationId: IntegrationId }) {
   const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
