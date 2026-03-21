@@ -1,4 +1,4 @@
-import type { SyncHistoryEntry, IntegrationId } from '@portier-sync/api';
+import type { SyncHistoryEntry, IntegrationId, AuditEntry } from '@portier-sync/api';
 import type { ReviewItem } from './review.js';
 
 export function buildAppliedHistoryEntry({
@@ -23,5 +23,20 @@ export function buildAppliedHistoryEntry({
     addedCount: selectedItems.filter((item) => item.changeType === "ADD").length,
     updatedCount: selectedItems.filter((item) => item.changeType === "UPDATE").length,
     deletedCount: selectedItems.filter((item) => item.changeType === "DELETE").length,
+  };
+}
+
+// Convert a remote-origin SyncHistoryEntry to a provenance-aware AuditEntry
+// for unified timeline rendering. Never call this on locally-applied entries.
+export function remoteHistoryToAuditEntry(entry: SyncHistoryEntry): AuditEntry {
+  return {
+    id: entry.id,
+    integrationId: entry.integrationId,
+    origin: 'remote',
+    eventType: 'remote-history',
+    summary: entry.summary,
+    details: entry.details,
+    timestamp: entry.timestamp,
+    resultVersion: entry.version,
   };
 }

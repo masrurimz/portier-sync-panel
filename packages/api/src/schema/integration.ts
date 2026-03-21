@@ -21,3 +21,16 @@ export const IntegrationSchema = z.object({
   lastSyncDuration: z.number().optional(),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;
+
+// Operator-facing status of one integration's sync lifecycle.
+// Distinct from SyncStatus (remote API field) — this is UI/product state.
+export const IntegrationOperatorStatusSchema = z.enum([
+  'up-to-date',
+  'preview-ready',
+  'conflicts-need-review',
+  'stale-draft',
+  'applying-locally',
+  'applied-locally',
+  'remote-unavailable',
+]);
+export type IntegrationOperatorStatus = z.infer<typeof IntegrationOperatorStatusSchema>;

@@ -140,3 +140,29 @@ The following were removed as obsolete after architecture cutover:
 - Sync preview state is not manually seeded into TanStack Query from review batches; preview query identity is API `application_id` (integration slug), not route `integrationId`.
 - Sync in-flight tracking is per integration (`syncingById`) to allow parallel work across integrations while blocking duplicate requests for the same integration.
 - `applyReview` now enforces a version guard (`integration.version === batch.versionBefore`) and rejects stale batches instead of projecting outdated state into cache/history.
+
+
+---
+
+## Domain Model (bead .9)
+
+Three distinct sources of truth must never be blurred in code or UI:
+
+| Layer | Type | Owner | Resets? |
+|---|---|---|---|
+| Remote truth | `Integration`, `SyncHistoryEntry` | TanStack Query | on invalidation |
+| Local truth | `LocalSnapshot`, `AuditEntry` (local) | MSW local DB | on app start |
+| Operator draft | `DraftSession` | Zustand store | on apply/reset |
+
+### Canonical types added in .9
+- `LocalSnapshot` — locally-accepted state per integration (feature domain)
+- `PreviewSession` — immutable remote preview payload, never mutated (feature domain)
+- `DraftSession` — mutable operator review state, valid only while `localVersion === baseVersion` (feature domain)
+- `AuditEntry` — provenance-aware unified history event: `origin: 'remote' | 'local' | 'future-push'` (shared schema package)
+- `IntegrationOperatorStatus` — 7-state product lifecycle enum, separate from remote `SyncStatus` (shared schema package)
+- `SyncFetchError` — moved from `-api` to `-domain/errors.ts`
+
+### Invariants
+1. `DraftSession` with `status !== 'stale'` requires `LocalSnapshot.localVersion === DraftSession.baseVersion`.
+2. `AuditEntry` with `origin: 'local'` MUST NOT be rendered as remote-confirmed history.
+3. `PreviewSession.items` are immutable after creation; operator decisions live only in `DraftSession.items`.

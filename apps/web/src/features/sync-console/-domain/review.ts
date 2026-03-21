@@ -1,4 +1,5 @@
 import type { SyncChange, Integration, IntegrationId } from '@portier-sync/api';
+import type { SyncFetchError } from './errors.js';
 
 export interface ReviewResolution {
   kind?: "local" | "external" | "merged";
@@ -130,4 +131,56 @@ export function applyStatusFromBatch(integration: Integration, batch: ReviewBatc
 
 export function getPreviewLines(batch: ReviewBatch) {
   return batch.items.slice(0, 4).map((item) => `${item.entityLabel} • ${item.fieldLabel} • ${item.reason}`);
+}
+
+// ---------------------------------------------------------------------------
+// Three-source domain model (added in bead .9)
+// ---------------------------------------------------------------------------
+
+// LocalSnapshot: current locally-accepted state for one integration.
+// Source: MSW-backed local DB (packages/api/src/msw/).
+// Resets on app start. localVersion advances with each local apply.
+export interface LocalSnapshot {
+  integrationId: IntegrationId;
+  localVersion: string;
+  recordCount: number;
+  updatedAt: string; // ISO string
+}
+
+// PreviewSession: immutable remote-derived comparison snapshot.
+// Created by Fetch latest. Never mutated after creation.
+// Invariant: items here are the raw remote payload, not operator decisions.
+export interface PreviewSession {
+  integrationId: IntegrationId;
+  baseVersion: string; // localVersion at time of fetch
+  proposedVersion: string;
+  fetchedAt: string; // ISO string
+  applicationName: string;
+  source: 'remote';
+  items: ReviewItem[]; // raw, unmodified from preview response
+}
+
+// DraftStatus: lifecycle state of one integration's mutable operator review work.
+export type DraftStatus =
+  | 'idle'
+  | 'fetching'
+  | 'ready'
+  | 'stale'
+  | 'applying'
+  | 'applied'
+  | 'failed';
+
+// DraftSession: mutable operator work derived from a PreviewSession.
+// Invariant: valid only while LocalSnapshot.localVersion === DraftSession.baseVersion.
+// When baseVersion diverges, status becomes 'stale' and apply is blocked.
+export interface DraftSession {
+  integrationId: IntegrationId;
+  baseVersion: string;
+  proposedVersion: string;
+  status: DraftStatus;
+  items: ReviewItem[]; // mutable: operator may change selection and resolution
+  selectedCount: number;
+  conflictCount: number;
+  unresolvedCount: number;
+  lastError?: SyncFetchError;
 }
