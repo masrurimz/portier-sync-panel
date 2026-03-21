@@ -35,7 +35,7 @@ export type ResolutionFormValues = z.infer<typeof resolutionFormSchema>
 
 export function toResolutionFormDefaults(item: ReviewItem): ResolutionFormValues {
   return {
-    kind: item.requiresDecision && !item.resolution.kind ? undefined : item.resolution.kind,
+    kind: item.resolution.kind,
     mergedValue: item.resolution.mergedValue ?? item.externalValue ?? item.localValue ?? '',
     notes: '',
   }

@@ -1,4 +1,4 @@
-import { AlertTriangleIcon, CheckCircle2Icon, CircleIcon } from 'lucide-react';
+import { AlertTriangleIcon, CheckCircle2Icon } from 'lucide-react';
 import type { ReviewItem } from '../../-domain/review';
 
 /**
@@ -7,14 +7,14 @@ import type { ReviewItem } from '../../-domain/review';
  * Safe items are green when included, muted when excluded.
  */
 export function getItemIndicator(item: ReviewItem) {
-  if (item.requiresDecision && !item.resolution.kind) {
-    return { Icon: AlertTriangleIcon, color: 'text-amber-500', label: 'Needs decision' } as const;
+  if (!item.resolution.kind) {
+    return { Icon: AlertTriangleIcon, color: 'text-amber-500', label: 'Pending' } as const;
   }
-  if (item.requiresDecision) {
-    return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Decided' } as const;
+  if (item.resolution.kind === 'local') {
+    return { Icon: CheckCircle2Icon, color: 'text-muted-foreground', label: 'Keep current' } as const;
   }
-  if (item.staged) {
-    return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Approved' } as const;
+  if (item.resolution.kind === 'external') {
+    return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Accept incoming' } as const;
   }
-  return { Icon: CircleIcon, color: 'text-muted-foreground', label: 'Skipped' } as const;
+  return { Icon: CheckCircle2Icon, color: 'text-blue-500', label: 'Custom' } as const;
 }

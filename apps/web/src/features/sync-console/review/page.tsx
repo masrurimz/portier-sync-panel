@@ -13,7 +13,6 @@ import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
-import { Checkbox } from "@portier-sync/ui/components/checkbox";
 import { Separator } from "@portier-sync/ui/components/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@portier-sync/ui/components/tooltip";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,8 +34,6 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   const draft = useReviewBatch(integrationId);
   const {
     updateReviewDecision,
-    toggleReviewSelection,
-    stageReadyChanges,
     applyReview,
   } = useReviewActions();
 
@@ -84,27 +81,23 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   }
 
   const grouped = {
-    pending: draft.items.filter((item) => item.requiresDecision && !item.resolution.kind),
-    resolved: draft.items.filter((item) => item.requiresDecision && Boolean(item.resolution.kind)),
-    ready: draft.items.filter((item) => !item.requiresDecision),
+    pending: draft.items.filter((item) => !item.resolution.kind),
+    resolved: draft.items.filter((item) => Boolean(item.resolution.kind)),
   };
 
   const focusItem = draft.items.find((item) => item.id === focusedId) ?? draft.items[0];
 
   // Counts driving canApply and the apply button.
-  // Decided items + directly staged items are included in totalStaged.
   const undecidedItems = grouped.pending.length;
   const decidedItems = grouped.resolved.length;
-  const directlyStaged = grouped.ready.filter((i) => i.staged).length;
-  const totalStaged = decidedItems + directlyStaged;
-  const canApply = draft.status !== 'stale' && totalStaged > 0 && undecidedItems === 0;
+  const canApply = draft.status !== 'stale' && draft.pendingCount === 0 && draft.reviewedCount > 0;
 
   // Auto-stage a decision and advance focus to the next undecided item.
   const handleAutoSave = React.useCallback(
     (resolution: import("../-domain/review").ReviewResolution) => {
       updateReviewDecision(integrationId, focusedId, resolution);
       // Advance to next undecided item (skip the item just decided).
-      const next = draft.items.find((item) => item.id !== focusedId && item.requiresDecision && !item.resolution.kind);
+      const next = draft.items.find((item) => item.id !== focusedId && !item.resolution.kind);
       if (next) setFocusedId(next.id);
     },
     [integrationId, focusedId, draft.items, updateReviewDecision],
@@ -161,7 +154,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
         <div className="grid gap-3 md:grid-cols-3">
           <ReviewStat icon={Layers2Icon} label="Total changes" value={String(draft.items.length)} />
           <ReviewStat icon={ShieldAlertIcon} label="Pending decisions" value={String(grouped.pending.length)} />
-          <ReviewStat icon={ShieldCheckIcon} label="Staged" value={String(grouped.resolved.length + grouped.ready.filter(i => i.staged).length)} />
+          <ReviewStat icon={ShieldCheckIcon} label="Reviewed" value={String(draft.reviewedCount)} />
         </div>
         <div className="grid gap-6 xl:grid-cols-[0.76fr_1.24fr]">
           {/* ── Left: change list ── */}
@@ -170,7 +163,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
             description="Items needing a decision must be resolved before they can be staged and applied."
             action={
               <Badge variant={undecidedItems > 0 ? "destructive" : "secondary"}>
-                {undecidedItems > 0 ? `${undecidedItems} undecided` : `${totalStaged} staged`}
+                {undecidedItems > 0 ? `${undecidedItems} pending` : `${decidedItems} reviewed`}
               </Badge>
             }
           >
@@ -254,66 +247,6 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                   </CardContent>
                 </Card>
               )}
-
-              {/* Ready to apply group */}
-              {grouped.ready.length > 0 && (
-                <Card size="sm" className="border border-border/70 bg-background/40">
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Staged</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{grouped.ready.length}</Badge>
-                        {/* Bulk approval lives next to the group it controls */}
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            stageReadyChanges(integrationId);
-                          }}
-                        >
-                          Stage all
-                        </Button>
-                      </div>
-                    </div>
-                    <CardDescription>These changes are staged and ready to apply. Inspect them in the detail panel.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-2">
-                    {grouped.ready.map((item) => {
-                      const { Icon, color, label } = getItemIndicator(item);
-                      return (
-                        <button
-                          key={item.id}
-                          className={`flex flex-col gap-2 rounded-2xl border p-3 text-left transition-colors ${
-                            focusItem?.id === item.id
-                              ? "border-primary/45 bg-primary/8"
-                              : "border-border/70 bg-background/30 hover:bg-accent/30"
-                          }`}
-                          onClick={() => setFocusedId(item.id)}
-                          type="button"
-                          aria-label={`${item.fieldLabel} — ${label}`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2">
-                              {/* Checkbox for ready items — stop propagation so focus and select are independent */}
-                              <Checkbox
-                                checked={item.staged}
-                                onCheckedChange={() => toggleReviewSelection(integrationId, item.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                aria-label={`${item.staged ? "Deselect" : "Select"} ${item.fieldLabel}`}
-                              />
-                              <Icon className={`size-4 shrink-0 ${color}`} aria-label={label} />
-                              <span className="font-medium">{item.recordLabel}</span>
-                            </div>
-                            <Badge variant="outline">{item.entityLabel}</Badge>
-                          </div>
-                          <span className="text-muted-foreground">{item.fieldLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </SurfaceSection>
 
@@ -323,7 +256,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
               <SurfaceSection
                 title="Field comparison"
                 description="Inspect both values side by side before choosing a resolution."
-                action={<Badge variant={focusItem.requiresDecision ? "destructive" : "secondary"}>{focusItem.changeType}</Badge>}
+                action={<Badge variant={!focusItem.resolution.kind ? "destructive" : "secondary"}>{focusItem.changeType}</Badge>}
               >
                 <div className="grid gap-4">
                   <div className="grid gap-3 md:grid-cols-3">
@@ -337,15 +270,14 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                       description="The value currently stored in Portier."
                       value={focusItem.localValue ?? ""}
                       otherValue={focusItem.externalValue ?? ""}
-                      highlightColor={focusItem.requiresDecision ? "red" : undefined}
+                      highlightColor={!focusItem.resolution.kind ? "red" : undefined}
                     />
                     <ValuePanel
-                    
                       title={`${draft.applicationName} (incoming)`}
                       description="The value coming from the external provider."
                       value={focusItem.externalValue ?? ""}
                       otherValue={focusItem.localValue ?? ""}
-                      highlightColor={focusItem.requiresDecision ? "green" : undefined}
+                      highlightColor={!focusItem.resolution.kind ? "green" : undefined}
                     />
                   </div>
                   <Card size="sm" className="border border-border/70 bg-muted/20">
@@ -361,16 +293,16 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 title="Resolution"
                 description="Choose which value to keep, then the item will be staged automatically."
                 action={
-                  <Badge variant={focusItem.requiresDecision && !focusItem.resolution.kind ? "destructive" : "outline"}>
-                    {focusItem.requiresDecision && !focusItem.resolution.kind
-                      ? "Needs decision"
+                  <Badge variant={!focusItem.resolution.kind ? "destructive" : "outline"}>
+                    {!focusItem.resolution.kind
+                      ? "Pending"
                       : focusItem.resolution.kind === "local"
                         ? "Keep current"
                         : focusItem.resolution.kind === "external"
                           ? "Accept incoming"
                           : focusItem.resolution.kind === "merged"
                             ? "Custom value"
-                            : "Staged"
+                            : "Reviewed"
                     }
                   </Badge>
                 }
@@ -401,7 +333,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                       <TooltipContent>
                         {undecidedItems > 0
                           ? `Decide ${undecidedItems} item${undecidedItems !== 1 ? "s" : ""} before applying`
-                          : "Stage at least one change to apply"}
+                          : "Make at least one decision to apply"}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -418,17 +350,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
             <AlertDialogTitle>Apply locally</AlertDialogTitle>
             <AlertDialogDescription>
               You are about to apply locally{" "}
-              <span className="font-medium text-foreground">{totalStaged} change{totalStaged !== 1 ? "s" : ""}</span>
-              {decidedItems > 0 && directlyStaged > 0 && (
-                <> — {decidedItems} decided item{decidedItems !== 1 ? "s" : ""} and{" "}
-                  {directlyStaged} directly staged{directlyStaged !== 1 ? "s" : ""}</>
-              )}
-              {decidedItems > 0 && directlyStaged === 0 && (
-                <> — {decidedItems} decided item{decidedItems !== 1 ? "s" : ""}</>
-              )}
-              {decidedItems === 0 && directlyStaged > 0 && (
-                <> — {directlyStaged} directly staged{directlyStaged !== 1 ? "s" : ""}</>
-              )}
+              <span className="font-medium text-foreground">{draft.reviewedCount} decision{draft.reviewedCount !== 1 ? "s" : ""}</span>
               {" "}<span className="font-medium text-foreground">This writes to your local database only</span> and does not affect the remote system.
             </AlertDialogDescription>
           </AlertDialogHeader>

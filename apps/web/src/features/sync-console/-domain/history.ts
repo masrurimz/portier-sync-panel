@@ -4,25 +4,26 @@ import type { ReviewItem } from './review.js';
 export function buildAppliedHistoryEntry({
   integrationId,
   version,
-  selectedItems,
+  reviewedItems,
 }: {
   integrationId: IntegrationId;
   version: string;
-  selectedItems: ReviewItem[];
+  reviewedItems: ReviewItem[];
 }): SyncHistoryEntry {
-  const conflicts = selectedItems.filter((item) => item.requiresDecision).length;
+  const kept = reviewedItems.filter((item) => item.resolution.kind === "local").length;
+  const accepted = reviewedItems.filter((item) => item.resolution.kind === "external").length;
   return {
     id: `hist-${integrationId}-${Date.now()}`,
     integrationId,
     timestamp: new Date(),
     source: "user",
     version,
-    summary: `Manual review applied${conflicts > 0 ? ` with ${conflicts} conflict resolution${conflicts > 1 ? "s" : ""}` : ""}`,
-    details: `${selectedItems.length} selected field${selectedItems.length === 1 ? "" : "s"} were applied after operator review.`,
-    changesCount: selectedItems.length,
-    addedCount: selectedItems.filter((item) => item.changeType === "ADD").length,
-    updatedCount: selectedItems.filter((item) => item.changeType === "UPDATE").length,
-    deletedCount: selectedItems.filter((item) => item.changeType === "DELETE").length,
+    summary: `Manual review applied — ${kept} kept current, ${accepted} accepted incoming`,
+    details: `${reviewedItems.length} field decisions applied after operator review.`,
+    changesCount: reviewedItems.length,
+    addedCount: reviewedItems.filter((item) => item.changeType === "ADD").length,
+    updatedCount: reviewedItems.filter((item) => item.changeType === "UPDATE").length,
+    deletedCount: reviewedItems.filter((item) => item.changeType === "DELETE").length,
   };
 }
 

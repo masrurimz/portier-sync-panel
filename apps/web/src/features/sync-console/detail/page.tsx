@@ -49,16 +49,15 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const previewLines = batch ? selectPreviewLines(batch) : [];
   const pendingCount = batch ? selectPendingReviewCount(batch) : 0;
-  const manualDecisionCount = batch ? batch.items.filter((item) => item.requiresDecision).length : 0;
   const metrics = buildIntegrationMetrics({
     integration,
     pendingUpdates: pendingCount,
-    conflicts: manualDecisionCount,
+    conflicts: batch?.pendingCount ?? 0,
     health,
     hasFetchError: Boolean(syncError),
   });
 
-  const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; needsDecisionCount: number; appName: string } | null>(null);
+  const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; pendingCount: number; appName: string } | null>(null);
 
   React.useEffect(() => {
     setFetchResult(null);
@@ -69,7 +68,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
       const freshBatch = await syncNow(integrationId, queryClient);
       setFetchResult({
         changeCount: freshBatch.items.length,
-        needsDecisionCount: freshBatch.items.filter((i) => i.requiresDecision).length,
+        pendingCount: freshBatch.pendingCount,
         appName: freshBatch.applicationName,
       });
     } catch {
@@ -123,7 +122,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
             <CardDescription>
               {fetchResult.changeCount === 0
                 ? `${fetchResult.appName} returned no changes.`
-                : `Found ${fetchResult.changeCount} change${fetchResult.changeCount !== 1 ? "s" : ""} — ${fetchResult.needsDecisionCount} need${fetchResult.needsDecisionCount !== 1 ? "" : "s"} a decision.`}
+                : `Found ${fetchResult.changeCount} change${fetchResult.changeCount !== 1 ? "s" : ""} — ${fetchResult.pendingCount} need${fetchResult.pendingCount !== 1 ? "" : "s"} a decision.`}
             </CardDescription>
           </CardHeader>
           {fetchResult.changeCount > 0 && (
