@@ -62,9 +62,6 @@ export function formatRelativeTime(date: Date | null): string {
   return `${diffDays} days ago`;
 }
 
-export function findIntegration(integrations: Integration[], integrationId: IntegrationId) {
-  return integrations.find((item) => item.id === integrationId);
-}
 
 export function buildIntegrationMetrics({
   integration,
