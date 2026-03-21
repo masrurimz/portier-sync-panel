@@ -314,6 +314,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 }
               >
                 <ReviewResolutionForm
+                  key={focusItem.id}
                   item={focusItem}
                   applicationName={draft.applicationName}
                   onAutoSave={handleAutoSave}

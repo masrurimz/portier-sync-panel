@@ -17,7 +17,6 @@ export function ReviewResolutionForm({
 
   return (
     <form
-      key={item.id}
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault()
