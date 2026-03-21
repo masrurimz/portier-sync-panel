@@ -28,4 +28,18 @@ export const fetchSchema = createSchema({
     query: apiContract.sync.preview.query,
     output: apiContract.sync.preview.output,
   },
+  // Local DB
+  '@get/api/v1/integrations/:id/snapshot': {
+    params: apiContract.local.snapshot.params,
+    output: apiContract.local.snapshot.output,
+  },
+  '@put/api/v1/integrations/:id/apply-review': {
+    params: apiContract.local.applyReview.params,
+    body: apiContract.local.applyReview.body,
+    output: apiContract.local.applyReview.output,
+  },
+  '@get/api/v1/integrations/:id/audit': {
+    params: apiContract.local.audit.params,
+    output: apiContract.local.audit.output,
+  },
 });

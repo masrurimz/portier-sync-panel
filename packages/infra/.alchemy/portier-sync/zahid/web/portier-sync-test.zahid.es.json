@@ -1,0 +1,33 @@
+{
+  "kind": "cloudflare::CustomDomain",
+  "id": "portier-sync-test.zahid.es",
+  "fqn": "portier-sync/zahid/web/portier-sync-test.zahid.es",
+  "seq": 0,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::CustomDomain",
+    "Symbol(alchemy::ResourceID)": "portier-sync-test.zahid.es",
+    "Symbol(alchemy::ResourceFQN)": "portier-sync/zahid/web/portier-sync-test.zahid.es",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 0,
+    "name": "portier-sync-test.zahid.es",
+    "zoneId": "e9f90134dc154581fd097e6b1783ad94",
+    "adopt": true,
+    "workerName": "portier-sync-web-zahid",
+    "dev": true,
+    "id": "976f94e576fd23f111d6cf579c74aa0613961675",
+    "environment": "production",
+    "createdAt": 1774113372069,
+    "updatedAt": 1774126877711
+  },
+  "props": {
+    "name": "portier-sync-test.zahid.es",
+    "zoneId": "e9f90134dc154581fd097e6b1783ad94",
+    "adopt": true,
+    "workerName": "portier-sync-web-zahid",
+    "dev": true
+  }
+}

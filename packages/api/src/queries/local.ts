@@ -1,5 +1,6 @@
+import { $fetch } from '../client';
 import type { AuditEntry } from '../schema/index';
-import type { LocalSnapshotRecord } from '../msw/data/local-snapshots';
+import type { LocalSnapshot, ApplyReviewBody } from '../schema/index';
 
 export interface ApplyLocalReviewInput {
   integrationId: string;
@@ -10,58 +11,44 @@ export interface ApplyLocalReviewInput {
 }
 
 export interface ApplyLocalReviewResult {
-  snapshot: LocalSnapshotRecord;
+  snapshot: LocalSnapshot;
   auditEntry: AuditEntry;
 }
 
 // Fetch the current local snapshot for one integration.
-// Calls the MSW-backed local endpoint; throws on HTTP error.
-export async function getLocalSnapshot(integrationId: string): Promise<LocalSnapshotRecord> {
-  const res = await fetch(`/local/integrations/${integrationId}/snapshot`);
-  if (!res.ok) {
-    throw new Error(`getLocalSnapshot failed: ${res.status}`);
-  }
-  const json = (await res.json()) as { data: LocalSnapshotRecord };
-  return json.data;
+export async function getLocalSnapshot(integrationId: string): Promise<LocalSnapshot> {
+  const result = await $fetch('@get/api/v1/integrations/:id/snapshot', {
+    params: { id: integrationId },
+  });
+  return result.data;
 }
 
 // Apply an operator-reviewed draft to the local DB.
-// Updates the local snapshot version and appends a local audit entry.
+// Updates the local snapshot revision and appends a local audit entry.
+// Throws on HTTP error; throws with a distinct message on 409 (stale revision).
 export async function applyLocalReview(
   input: ApplyLocalReviewInput,
 ): Promise<ApplyLocalReviewResult> {
-  const res = await fetch(`/local/integrations/${input.integrationId}/apply-review`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      expectedRevision: input.expectedRevision,
-      selectedCount: input.selectedCount,
-      conflictResolutionCount: input.conflictResolutionCount,
-      applicationName: input.applicationName,
-    }),
+  const body: ApplyReviewBody = {
+    expectedRevision: input.expectedRevision,
+    selectedCount: input.selectedCount,
+    conflictResolutionCount: input.conflictResolutionCount,
+    applicationName: input.applicationName,
+  };
+  const result = await $fetch('@put/api/v1/integrations/:id/apply-review', {
+    params: { id: input.integrationId },
+    body,
   });
-  if (!res.ok) {
-    if (res.status === 409) {
-      throw new Error('applyLocalReview: conflict — snapshot revision changed since fetch');
-    }
-    throw new Error(`applyLocalReview failed: ${res.status}`);
-  }
-  const json = (await res.json()) as { data: ApplyLocalReviewResult };
-  return json.data;
+  return result.data;
 }
 
-// Fetch local audit history, optionally filtered by integrationId.
-export async function getLocalHistory(integrationId?: string): Promise<AuditEntry[]> {
-  const url = integrationId
-    ? `/local/history?integrationId=${encodeURIComponent(integrationId)}`
-    : '/local/history';
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`getLocalHistory failed: ${res.status}`);
-  }
-  const json = (await res.json()) as { data: AuditEntry[] };
-  return json.data;
+// Fetch local audit history for one integration.
+export async function getLocalHistory(integrationId: string): Promise<AuditEntry[]> {
+  const result = await $fetch('@get/api/v1/integrations/:id/audit', {
+    params: { id: integrationId },
+  });
+  return result.data;
 }
 
-// Re-export the type for consumers
-export type { LocalSnapshotRecord };
+// Re-export types for consumers
+export type { LocalSnapshot as LocalSnapshotRecord };

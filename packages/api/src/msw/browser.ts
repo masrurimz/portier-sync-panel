@@ -2,7 +2,7 @@ import { setupWorker } from 'msw/browser'
 import { syncHandlers } from './handlers/sync-handlers'
 import { integrationHandlers } from './handlers/integration-handlers'
 import { historyHandlers } from './handlers/history-handlers'
-import { localHandlers } from './handlers/local-handlers'
+import { localDbHandlers } from './handlers/local-handlers'
 import { draftHandlers, providerHandlers } from './handlers/draft-handlers'
 
 // Handlers for mocked scaffolding that the take-home app still models locally.
@@ -13,7 +13,7 @@ const scaffoldingHandlers = [
   ...draftHandlers,
   ...providerHandlers,
   ...historyHandlers,
-  ...localHandlers,
+  ...localDbHandlers,
  ]
 
 // Sync preview handlers for fully mocked development mode only.

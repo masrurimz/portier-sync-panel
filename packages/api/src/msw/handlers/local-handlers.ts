@@ -1,20 +1,14 @@
 import { http, HttpResponse } from 'msw';
 import { localSnapshotStore } from '../data/local-snapshots';
 import { localAuditLog } from '../data/local-history';
-import type { AuditEntry } from '../../schema/index';
+import type { AuditEntry, ApplyReviewBody } from '../../schema/index';
 
-interface ApplyReviewBody {
-  // CAS token: must equal the snapshot's current revision or the handler returns 409.
-  expectedRevision: number;
-  selectedCount: number;
-  conflictResolutionCount: number;
-  applicationName: string;
-}
+const BASE_URL = 'https://portier-takehometest.onrender.com';
 
-// Local test infrastructure endpoints — clearly distinct from /api/v1/... remote endpoints.
-// These represent the MSW-backed local DB; not production backend APIs.
-export const localHandlers = [
-  http.get('/local/integrations/:id/snapshot', ({ params }) => {
+// MSW handlers for the managed local DB endpoints.
+// These serve the /api/v1/integrations/:id/... paths backed by in-memory stores.
+export const localDbHandlers = [
+  http.get(`${BASE_URL}/api/v1/integrations/:id/snapshot`, ({ params }) => {
     const { id } = params as { id: string };
     const snapshot = localSnapshotStore[id];
 
@@ -28,7 +22,7 @@ export const localHandlers = [
     return HttpResponse.json({ data: snapshot });
   }),
 
-  http.put('/local/integrations/:id/apply-review', async ({ params, request }) => {
+  http.put(`${BASE_URL}/api/v1/integrations/:id/apply-review`, async ({ params, request }) => {
     const { id } = params as { id: string };
     const snapshot = localSnapshotStore[id];
 
@@ -76,14 +70,9 @@ export const localHandlers = [
     return HttpResponse.json({ data: { snapshot, auditEntry } });
   }),
 
-  http.get('/local/history', ({ request }) => {
-    const url = new URL(request.url);
-    const integrationId = url.searchParams.get('integrationId');
-
-    const entries = integrationId
-      ? localAuditLog.filter((e) => e.integrationId === integrationId)
-      : localAuditLog;
-
+  http.get(`${BASE_URL}/api/v1/integrations/:id/audit`, ({ params }) => {
+    const { id } = params as { id: string };
+    const entries = localAuditLog.filter((e) => e.integrationId === id);
     return HttpResponse.json({ data: entries });
   }),
 ];

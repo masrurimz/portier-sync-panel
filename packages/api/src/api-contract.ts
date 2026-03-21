@@ -6,6 +6,10 @@ import {
   IntegrationStatusSchema,
   SyncHistoryEntrySchema,
   SyncDataSchema,
+  LocalSnapshotSchema,
+  ApplyReviewBodySchema,
+  ApplyReviewResultSchema,
+  AuditEntrySchema,
 } from './schema/index';
 
 /**
@@ -69,6 +73,41 @@ export const apiContract = {
       },
     },
   },
+  local: {
+    snapshot: {
+      path: '/api/v1/integrations/:id/snapshot',
+      method: 'GET',
+      params: z.object({ id: z.string() }),
+      output: ApiSuccessResponseSchema(LocalSnapshotSchema),
+      errors: {
+        404: ApiErrorResponseSchema,
+        500: ApiErrorResponseSchema,
+      },
+    },
+    applyReview: {
+      path: '/api/v1/integrations/:id/apply-review',
+      method: 'PUT',
+      params: z.object({ id: z.string() }),
+      body: ApplyReviewBodySchema,
+      output: ApiSuccessResponseSchema(ApplyReviewResultSchema),
+      errors: {
+        404: ApiErrorResponseSchema,
+        409: ApiErrorResponseSchema,
+        500: ApiErrorResponseSchema,
+      },
+    },
+    audit: {
+      path: '/api/v1/integrations/:id/audit',
+      method: 'GET',
+      params: z.object({ id: z.string() }),
+      output: ApiSuccessResponseSchema(z.array(AuditEntrySchema)),
+      errors: {
+        404: ApiErrorResponseSchema,
+        500: ApiErrorResponseSchema,
+      },
+    },
+  },
 } as const;
+
 
 export type ApiContract = typeof apiContract;

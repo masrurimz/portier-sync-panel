@@ -1,0 +1,81 @@
+{
+  "kind": "cloudflare::Worker",
+  "id": "web",
+  "fqn": "portier-sync/zahid/web",
+  "seq": 0,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::Worker",
+    "Symbol(alchemy::ResourceID)": "web",
+    "Symbol(alchemy::ResourceFQN)": "portier-sync/zahid/web",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 0,
+    "entrypoint": "dist/server/index.js",
+    "compatibility": "node",
+    "noBundle": true,
+    "cwd": "../../apps/web",
+    "adopt": true,
+    "domains": [],
+    "bindings": {
+      "CORS_ORIGIN": "http://localhost:3001"
+    },
+    "wrangler": {},
+    "name": "portier-sync-web-zahid",
+    "compatibilityFlags": [
+      "nodejs_compat",
+      "nodejs_compat_populate_process_env"
+    ],
+    "compatibilityDate": "2026-03-17",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "none",
+      "run_worker_first": false,
+      "directory": "dist/client"
+    },
+    "dev": {
+      "hasRemote": true
+    },
+    "type": "service",
+    "id": "web",
+    "format": "esm",
+    "createdAt": 1774112983820,
+    "updatedAt": 1774127964844,
+    "url": "http://localhost:3001/",
+    "routes": []
+  },
+  "props": {
+    "entrypoint": "dist/server/index.js",
+    "compatibility": "node",
+    "noBundle": true,
+    "cwd": "../../apps/web",
+    "adopt": true,
+    "domains": [
+      {
+        "domainName": "portier-sync-test.zahid.es",
+        "zoneId": "e9f90134dc154581fd097e6b1783ad94"
+      }
+    ],
+    "bindings": {
+      "CORS_ORIGIN": "http://localhost:3001"
+    },
+    "wrangler": {},
+    "name": "portier-sync-web-zahid",
+    "compatibilityFlags": [
+      "nodejs_compat",
+      "nodejs_compat_populate_process_env"
+    ],
+    "compatibilityDate": "2026-03-17",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "none",
+      "run_worker_first": false,
+      "directory": "dist/client"
+    },
+    "dev": {
+      "url": "http://localhost:3001/"
+    }
+  }
+}
