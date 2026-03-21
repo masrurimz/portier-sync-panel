@@ -16,7 +16,7 @@ import {
 } from "@portier-sync/ui/components/table";
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
-import { LinkButton, MetricGrid, OperatorStatusBadge, PageShell, SurfaceSection, DataPoint } from "../-ui/ui";
+import { IntegrationIcon, LinkButton, MetricGrid, OperatorStatusBadge, PageShell, SurfaceSection, DataPoint } from "../-ui/ui";
 import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../-domain/integration";
 import type { DraftSession } from "../-domain/review";
 import { useReviewStore } from "../-state/review-store";
@@ -79,7 +79,7 @@ export function OverviewPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
-                        <span aria-hidden="true" className="text-lg">{integration.icon}</span>
+                        <IntegrationIcon icon={integration.icon} />
                         <h3 className="text-base font-semibold">{integration.name}</h3>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -168,7 +168,7 @@ export function OverviewPage() {
                   <TableRow key={integration.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <span aria-hidden="true" className="text-lg">{integration.icon}</span>
+                        <IntegrationIcon icon={integration.icon} />
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{integration.name}</span>
                           <span className="text-muted-foreground">{integration.totalRecords?.toLocaleString("en-US")} modeled records</span>

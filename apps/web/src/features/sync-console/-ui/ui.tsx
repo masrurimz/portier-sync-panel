@@ -11,9 +11,20 @@ import {
 } from "@portier-sync/ui/components/card";
 import { cn } from "@portier-sync/ui/lib/utils";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangleIcon, CheckCircle2Icon, CircleDashedIcon, ShieldAlertIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckCircle2Icon,
+  CircleDashedIcon,
+  CloudIcon,
+  CreditCardIcon,
+  MailIcon,
+  MessageSquareIcon,
+  ShieldAlertIcon,
+  TargetIcon,
+  TicketIcon,
+} from "lucide-react";
 
-import type { Integration, IntegrationId, IntegrationOperatorStatus } from "@portier-sync/api";
+import { type Integration, type IntegrationIcon, type IntegrationId, type IntegrationOperatorStatus } from "@portier-sync/api";
 import type { ConsoleMetric } from "../-domain/integration";
 
 export function PageShell({
@@ -201,4 +212,20 @@ export function DataPoint({ label, value, emphasis = false }: { label: string; v
       <span className={cn("text-sm font-medium", emphasis && "text-foreground")}>{value}</span>
     </div>
   );
+}
+
+// Icon component for integration types.
+// Maps stable icon keys to Lucide React components.
+const integrationIconMap: Record<IntegrationIcon, React.ComponentType<{ className?: string }>> = {
+  cloud: CloudIcon,
+  target: TargetIcon,
+  'credit-card': CreditCardIcon,
+  'message-square': MessageSquareIcon,
+  ticket: TicketIcon,
+  mail: MailIcon,
+};
+
+export function IntegrationIcon({ icon, className }: { icon: IntegrationIcon; className?: string }) {
+  const Icon = integrationIconMap[icon];
+  return <Icon className={cn("size-5 text-muted-foreground", className)} aria-hidden />;
 }
