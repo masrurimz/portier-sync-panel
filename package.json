@@ -26,7 +26,8 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo dev",
+    "dev:cf": "turbo dev --filter=@portier-sync/infra",
+    "dev": "turbo dev --filter=web",
     "build": "turbo build",
     "check:types": "turbo check:types",
     "check:lint": "turbo check:lint",
