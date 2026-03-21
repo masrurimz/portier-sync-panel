@@ -1,49 +1,10 @@
-import type { Integration, IntegrationId } from '@portier-sync/api';
-
-export interface IntegrationHealthMeta {
-  reliability: string;
-  sourceHealth: "healthy" | "degraded" | "timeout";
-  nextScheduledSync: string;
-}
+import type { Integration } from '@portier-sync/api';
 
 export interface ConsoleMetric {
   label: string;
   value: string;
   hint: string;
 }
-
-export const integrationHealthSeed: Record<IntegrationId, IntegrationHealthMeta> = {
-  "1": {
-    reliability: "Source healthy • preview available • low-risk updates can be reviewed immediately",
-    sourceHealth: "healthy",
-    nextScheduledSync: "Today • 14:00",
-  },
-  "2": {
-    reliability: "Source healthy • preview fetched • operator review required before apply",
-    sourceHealth: "healthy",
-    nextScheduledSync: "Today • 13:30",
-  },
-  "3": {
-    reliability: "Provider degraded • preview could not be refreshed • no new changes applied",
-    sourceHealth: "degraded",
-    nextScheduledSync: "Retry in 15 minutes",
-  },
-  "4": {
-    reliability: "Live fetch in progress • workspace change set is still loading",
-    sourceHealth: "healthy",
-    nextScheduledSync: "Running now",
-  },
-  "5": {
-    reliability: "Provider timed out • last known review queue preserved for audit only",
-    sourceHealth: "timeout",
-    nextScheduledSync: "Retry in 30 minutes",
-  },
-  "6": {
-    reliability: "Source healthy • last batch completed with no items needing a decision",
-    sourceHealth: "healthy",
-    nextScheduledSync: "Today • 15:00",
-  },
-};
 
 export function formatRelativeTime(date: Date | null): string {
   if (!date) return 'Never';

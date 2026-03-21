@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { Button } from "@portier-sync/ui/components/button";
 import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
-import { getLocalSnapshot, integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
-import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
+import { getLocalSnapshot, integrationsListQueryOptions, integrationStatusQueryOptions, type IntegrationId } from "@portier-sync/api";
+import { buildIntegrationMetrics, formatRelativeTime } from "../-domain/integration";
 import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
 import { useIsSyncing, useReviewActions, useReviewBatch, useSyncError } from "../-state/review-store";
 import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-components";
@@ -25,6 +25,10 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
     queryKey: ["local", "snapshot", integrationId],
     queryFn: () => getLocalSnapshot(integrationId),
   });
+
+  const { data: integrationStatus } = useQuery(
+    integrationStatusQueryOptions({ input: { id: integrationId } })
+  );
   // Guard: integration not yet hydrated in query state
   if (!integration) {
     return (
@@ -40,11 +44,8 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
     );
   }
 
-  const health = integrationHealthSeed[integrationId] ?? {
-    reliability: "Status unknown",
-    sourceHealth: "healthy" as const,
-    nextScheduledSync: "—",
-  };
+  const providerHealth = integrationStatus?.providerHealth ?? 'healthy';
+  const statusReason = integrationStatus?.statusReason;
 
   const previewLines = batch ? selectPreviewLines(batch) : [];
   const pendingCount = batch ? selectPendingReviewCount(batch) : 0;
@@ -92,11 +93,11 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
     >
       <Alert variant={syncError ? "destructive" : "default"}>
         <ShieldCheckIcon />
-        <AlertTitle>{syncError ? syncError.title : health.reliability}</AlertTitle>
+        <AlertTitle>{syncError ? syncError.title : (statusReason ?? (providerHealth === 'healthy' ? 'Source healthy' : `Provider ${providerHealth}`))}</AlertTitle>
         <AlertDescription>
           {syncError
             ? syncError.message
-            : `Next scheduled sync ${health.nextScheduledSync}. Last healthy sync ${formatRelativeTime(integration.lastSynced)}.`}
+            : `Last healthy sync ${formatRelativeTime(integration.lastSynced)}.`}
         </AlertDescription>
       </Alert>
 
@@ -200,7 +201,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
               </CardHeader>
               <CardContent className="flex flex-col gap-3 text-muted-foreground">
                 <p>
-                  Source health is currently marked <span className="font-medium text-foreground">{health.sourceHealth}</span>. Use retryable errors to decide whether to fetch again or inspect the last successful history entry.
+                  Source health is currently marked <span className="font-medium text-foreground">{providerHealth}</span>. Use retryable errors to decide whether to fetch again or inspect the last successful history entry.
                 </p>
               </CardContent>
             </Card>

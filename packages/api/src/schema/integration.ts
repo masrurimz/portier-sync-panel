@@ -61,3 +61,13 @@ export const IntegrationOperatorStatusSchema = z.enum([
   'backend-conflict',
 ]);
 export type IntegrationOperatorStatus = z.infer<typeof IntegrationOperatorStatusSchema>;
+
+
+export const IntegrationStatusSchema = z.object({
+  id: IntegrationIdSchema,
+  status: SyncStatusSchema,
+  providerHealth: z.enum(['healthy', 'degraded', 'unreachable']),
+  statusReason: z.string().optional(),
+  statusChangedAt: z.coerce.date().optional(),
+});
+export type IntegrationStatus = z.infer<typeof IntegrationStatusSchema>;

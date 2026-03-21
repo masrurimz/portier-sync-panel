@@ -14,6 +14,10 @@ export const fetchSchema = createSchema({
     params: apiContract.integrations.get.params,
     output: apiContract.integrations.get.output,
   },
+  '@get/api/v1/integrations/:id/status': {
+    params: apiContract.integrations.status.params,
+    output: apiContract.integrations.status.output,
+  },
   // History
   '@get/api/v1/integrations/:id/history': {
     params: apiContract.history.list.params,

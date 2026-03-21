@@ -3,6 +3,7 @@ import {
   ApiSuccessResponseSchema,
   ApiErrorResponseSchema,
   IntegrationSchema,
+  IntegrationStatusSchema,
   SyncHistoryEntrySchema,
   SyncDataSchema,
 } from './schema/index';
@@ -27,6 +28,16 @@ export const apiContract = {
       method: 'GET',
       params: z.object({ id: z.string() }),
       output: ApiSuccessResponseSchema(IntegrationSchema),
+      errors: {
+        404: ApiErrorResponseSchema,
+        500: ApiErrorResponseSchema,
+      },
+    },
+    status: {
+      path: '/api/v1/integrations/:id/status',
+      method: 'GET',
+      params: z.object({ id: z.string() }),
+      output: ApiSuccessResponseSchema(IntegrationStatusSchema),
       errors: {
         404: ApiErrorResponseSchema,
         500: ApiErrorResponseSchema,
