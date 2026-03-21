@@ -14,6 +14,7 @@ import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { StatusBadge, useSyncSession } from "../features/sync-console";
 
 export const Route = createFileRoute("/integration/$integrationId")({
+  ssr: false,
   component: IntegrationLayoutRoute,
 });
 
