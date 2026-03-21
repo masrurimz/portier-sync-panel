@@ -195,12 +195,15 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              <Icon className={`size-4 shrink-0 ${color}`} aria-label={label} />
+                              <Icon className={`size-4 shrink-0 ${color}`} aria-hidden />
                               <span className="font-medium">{item.recordLabel}</span>
                             </div>
                             <Badge variant="outline">{item.entityLabel}</Badge>
                           </div>
-                          <span className="text-muted-foreground">{item.fieldLabel}</span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-muted-foreground">{item.fieldLabel}</span>
+                            <span className={`text-xs font-medium ${color}`}>{label}</span>
+                          </div>
                         </button>
                       );
                     })}
@@ -235,12 +238,15 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              <Icon className={`size-4 shrink-0 ${color}`} aria-label={label} />
+                              <Icon className={`size-4 shrink-0 ${color}`} aria-hidden />
                               <span className="font-medium">{item.recordLabel}</span>
                             </div>
                             <Badge variant="outline">{item.entityLabel}</Badge>
                           </div>
-                          <span className="text-muted-foreground">{item.fieldLabel}</span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm text-muted-foreground">{item.fieldLabel}</span>
+                            <span className={`text-xs font-medium ${color}`}>{label}</span>
+                          </div>
                         </button>
                       );
                     })}
