@@ -189,7 +189,7 @@ export function OverviewPage() {
                         if (opStatus === "stale-draft") {
                           return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">Refresh draft</LinkButton>;
                         }
-                        if (opStatus === "applied-locally") {
+                        if (opStatus === "applied-locally" || opStatus === "remote-unavailable") {
                           return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
                         }
                         return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">Manage</LinkButton>;

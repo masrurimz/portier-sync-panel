@@ -80,6 +80,33 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
     );
   }
 
+  // Guard: fetch failed - show error with retry option
+  if (draft.status === "failed") {
+    const error = draft.lastError;
+    return (
+      <PageShell
+        eyebrow="Review queue"
+        title={`${integration.name} review`}
+        description="Unable to load preview for review."
+      >
+        <div className="flex flex-col gap-4">
+          <Alert variant="destructive">
+            <ShieldAlertIcon />
+            <AlertTitle>{error?.title ?? "Failed to fetch preview"}</AlertTitle>
+            <AlertDescription>
+              {error?.message ?? "The sync preview could not be loaded. Your local data has not changed."}
+            </AlertDescription>
+          </Alert>
+          <div className="flex gap-2">
+            <LinkButton to="/integration/$integrationId" params={{ integrationId }} variant="secondary">
+              Go to detail page
+            </LinkButton>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
   const grouped = {
     pending: draft.items.filter((item) => !item.resolution.kind),
     resolved: draft.items.filter((item) => Boolean(item.resolution.kind)),
@@ -132,7 +159,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
               <span><span className="font-medium text-foreground">{draft.applicationName}</span> — remote preview</span>
               <span>Base version: <span className="font-mono">{draft.baseVersion}</span></span>
               <span>Proposed: <span className="font-mono">{draft.proposedVersion}</span></span>
-              <span>Fetched {new Date(draft.fetchedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+              <span>Fetched {draft.fetchedAt ? new Date(draft.fetchedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'pending'}</span>
             </div>
           </div>
         )}

@@ -140,9 +140,11 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
           title="Incoming changes preview"
           description="Summary of fetched changes before field-level review."
           action={
-            <LinkButton to="/integration/$integrationId/review" params={{ integrationId }} variant="secondary">
-              Review queue
-            </LinkButton>
+            batch?.status === "ready" ? (
+              <LinkButton to="/integration/$integrationId/review" params={{ integrationId }} variant="secondary">
+                Review queue
+              </LinkButton>
+            ) : undefined
           }
         >
           {previewLines.length > 0 ? (
