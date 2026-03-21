@@ -12,7 +12,7 @@ The app has two runtime modes controlled by the `VITE_MOCK_API` environment vari
 | Integrations list & detail | MSW-modeled | MSW-modeled |
 | Sync history | MSW-modeled | MSW-modeled |
 | Review draft state | Zustand in-memory | Zustand in-memory |
-| Local apply & audit | MSW `/local/*` | MSW `/local/*` |
+| Local snapshot & audit | MSW `/api/v1/integrations/:id/snapshot`, `/apply-review`, `/audit` | MSW `/api/v1/...` |
 | Network required | Yes (sync preview) | No |
 | Use case | Reviewer path, take-home demo | Offline development |
 
@@ -33,7 +33,7 @@ const scaffoldingHandlers = [
   ...draftHandlers,
   ...providerHandlers,
   ...historyHandlers,
-  ...localHandlers,
+  ...localDbHandlers,
 ]
 
 const syncPreviewHandlers = [
@@ -68,18 +68,18 @@ const mswReady =
 | Scaffolding — history | `https://portier-takehometest.onrender.com` | `history-handlers.ts` | Yes | Yes |
 | Scaffolding — draft | `https://portier-takehometest.onrender.com` | `draft-handlers.ts` | Yes | Yes |
 | Scaffolding — provider sim | `https://portier-takehometest.onrender.com` | `draft-handlers.ts` (recover/degrade) | Yes | Yes |
-| Local endpoints | (relative path `/local/*`) | `local-handlers.ts` | Yes | Yes |
+| Local endpoints | `https://portier-takehometest.onrender.com` | `local-handlers.ts` (as `localDbHandlers`) | Yes | Yes |
 | Sync preview | `https://portier-takehometest.onrender.com/api/v1/data/sync` | `sync-handlers.ts` | **No** | Yes |
 
 The `error-handlers.ts` file exists separately for testing specific error scenarios but is not part of either default worker. It can be used to override handlers in custom test setups.
 
-## Local Endpoints
+## Local DB Endpoints
 
-These are relative-path endpoints that serve the MSW-backed local database. They are not remote-style APIs.
+These endpoints back the managed local database. They are part of the real API contract (`apiContract.local`) and follow the same `ApiSuccessResponseSchema` envelope as all other endpoints. In development, MSW intercepts them at the `BASE_URL` origin; in production, they are served by the real backend.
 
-- `GET /local/integrations/:id/snapshot` — read local snapshot with current revision
-- `PUT /local/integrations/:id/apply-review` — apply reviewed changes; implements CAS protection (`expectedRevision` must match; returns 409 if not)
-- `GET /local/history` — local audit log (optionally filtered by `integrationId`)
+- `GET /api/v1/integrations/:id/snapshot` — read local snapshot (revision CAS token + recordCount)
+- `PUT /api/v1/integrations/:id/apply-review` — apply reviewed changes with CAS protection; `expectedRevision` must equal current `snapshot.revision`; returns 409 on mismatch
+- `GET /api/v1/integrations/:id/audit` — local audit log for this integration (origin: 'local' entries)
 
 The local snapshot has a `revision` counter that acts as a CAS token. A draft session captures `baseRevision` at fetch time. Before apply, `review-store.ts` re-reads the snapshot and checks that `baseRevision === snapshot.revision`; if not, the apply is rejected with a stale-draft error.
 
@@ -103,7 +103,7 @@ All state — integration store, draft sessions, local snapshots, local audit lo
 
 - Resets on page reload
 - Is shared across the MSW service worker lifetime during a session
-- Is not persisted to localStorage, IndexedDB, or any server
+- Is not persisted across page reloads in the current MSW-backed implementation. In production, these endpoints are backed by the real server, providing durability across sessions and operators.
 
 HubSpot (id=2) is seeded with 5 pending review items to demonstrate the conflict review flow without needing a live API call.
 

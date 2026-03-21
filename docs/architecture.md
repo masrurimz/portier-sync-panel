@@ -10,8 +10,9 @@ Browser
               ├── Zustand + Immer (review session state)
               └── TanStack Form (review resolution editing only)
                     └── @portier-sync/api (typed client, query factories, MSW)
-                          ├── Real: GET /api/v1/data/sync (portier-takehometest.onrender.com)
-                          └── MSW: all other endpoints (locally modeled)
+├── Real: GET /api/v1/data/sync (portier-takehometest.onrender.com)
+├── MSW-modeled (dev) / Real (prod): GET|PUT /api/v1/integrations/:id/snapshot|apply-review|audit
+└── MSW-modeled: all other scaffolding endpoints
 ```
 
 ## Monorepo Packages
@@ -57,7 +58,7 @@ Sync preview → review → apply lifecycle:
 
 2. **Review**: operator makes per-field resolution decisions (`updateReviewDecision`), stored in Zustand
 
-3. **Apply**: `review-store.applyReview()` reads `baseRevision` from local snapshot via `/local/integrations/:id/snapshot` → CAS check → PUT to `/local/integrations/:id/apply-review` → bumps local revision, writes `AuditEntry` with `origin: 'local'`
+3. **Apply**: `review-store.applyReview()` reads `baseRevision` from local snapshot via `GET /api/v1/integrations/:id/snapshot` → client-side CAS pre-flight (advisory) → `PUT /api/v1/integrations/:id/apply-review` with `expectedRevision` → server increments revision, writes `AuditEntry` with `origin: 'local'`; returns 409 if revision changed since fetch
 
 4. **History**: `HistoryPage` merges MSW-modeled remote-style events with local audit entries via `getLocalHistory()`; `origin` field preserves provenance
 
@@ -66,17 +67,17 @@ Sync preview → review → apply lifecycle:
 | Entry type | origin field | Backed by |
 |------------|--------------|-----------|
 | Remote-style historical events | `remote` | MSW `history-handlers.ts` / `data/history.ts` |
-| Local apply confirmations | `local` | `local-handlers.ts` writes to `localAuditLog` |
+| Local apply confirmations | `local` | `local-db-handlers.ts` writes to `localAuditLog` |
 
 Local entries are never back-filled as remote-confirmed events; they remain distinguishable in history.
 
 ## packages/api Internals
 
-- `schema/` — Zod domain schemas (Integration, SyncChange, AuditEntry, etc.)
-- `api-contract.ts` — typed endpoint contract (path, method, schemas) for integrations, history, sync preview
+- `schema/` — Zod domain schemas (Integration, SyncChange, AuditEntry, LocalSnapshot, ApplyReviewBody, ApplyReviewResult, etc.)
+- `api-contract.ts` — typed endpoint contract (path, method, schemas) for integrations, history, sync preview, and local DB (snapshot, apply-review, audit)
 - `fetch-schema.ts` — thin better-fetch adapter from contract
 - `client.ts` — `$fetch` client with `throw: true` for TanStack Query compatibility
-- `queries/` — `queryOptions` and `queryKey` factories; `local.ts` for MSW-backed local endpoints
+- `queries/` — `queryOptions` and `queryKey` factories; `local.ts` for local DB endpoints (snapshot, apply-review, audit) — uses typed $fetch routes
 - `msw/` — browser workers, handler sets, in-memory data stores
 
 ## SSR Posture
@@ -106,7 +107,7 @@ A revision counter (integer) is used as the CAS token rather than a timestamp be
 
 - Timestamps are ambiguous under concurrent writes (two writes within the same millisecond would not be detected).
 - The revision starts at 1 and increments on every successful apply. There is no ambiguity about ordering.
-- The server-side CAS check in `local-handlers.ts` is the authoritative guard. The client-side pre-flight check in `applyReview()` is advisory — it provides a fast failure path and a better error message (`stale_batch`) before the round-trip.
+- The server-side CAS check in `local-db-handlers.ts` (serving `PUT /api/v1/integrations/:id/apply-review`) is the authoritative guard. The client-side pre-flight check in `applyReview()` is advisory — it provides a fast failure path and a better error message (`stale_batch`) before the round-trip.
 
 ### Why the three-way resolution model (`local` / `external` / `merged`)
 
