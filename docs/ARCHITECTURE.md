@@ -1,10 +1,11 @@
 # Sync Console Architecture Decisions
 
-Last updated: 2026-03-21
+Last updated: 2026-03-21 (redesign complete through bead .15)
 
 This document records architecture decisions implemented for:
 - `portier-sync-3gh` (folder structure reshape)
 - `portier-sync-czc` (state management overhaul)
+- `portier-sync-4l7.*` (sync product redesign: domain model, local MSW DB, orchestration, page UX, history provenance)
 
 Use this as the canonical reference for feature structure, state ownership, and why these decisions were made.
 
@@ -137,9 +138,11 @@ The following were removed as obsolete after architecture cutover:
 - Review store actions receive `queryClient` from call sites (`useQueryClient`) instead of reading a module-level singleton.
 - Integration header/status surfaces consume TanStack Query data directly.
 - Review workflow mutation actions are centralized in Zustand store and patch query cache as needed.
-- Sync preview state is not manually seeded into TanStack Query from review batches; preview query identity is API `application_id` (integration slug), not route `integrationId`.
-- Sync in-flight tracking is per integration (`syncingById`) to allow parallel work across integrations while blocking duplicate requests for the same integration.
-- `applyReview` now enforces a version guard (`integration.version === batch.versionBefore`) and rejects stale batches instead of projecting outdated state into cache/history.
+- Sync preview state is not manually seeded into TanStack Query from review batches.
+- Sync in-flight tracking is per integration via `DraftSession.status === 'fetching'`; no separate `syncingById` map.
+- `applyReview` calls `applyLocalReview` from `@portier-sync/api` which writes to the MSW-backed local DB. It does NOT inject into the remote history query cache; local history is served by `getLocalHistory`.
+- Stale detection compares `draft.baseVersion` against `localSnapshot.localVersion` (NOT `integration.version`). The baseline for comparison is the local DB version, not the remote version.
+- The `-api/` feature wrapper layer has been deleted. All API calls use `@portier-sync/api` directly from pages and the review store. Only feature-local layer remaining is `-domain/errors.ts` (error normalization).
 
 
 ---
@@ -166,3 +169,22 @@ Three distinct sources of truth must never be blurred in code or UI:
 1. `DraftSession` with `status !== 'stale'` requires `LocalSnapshot.localVersion === DraftSession.baseVersion`.
 2. `AuditEntry` with `origin: 'local'` MUST NOT be rendered as remote-confirmed history.
 3. `PreviewSession.items` are immutable after creation; operator decisions live only in `DraftSession.items`.
+
+---
+
+## Redesign Summary (beads .9–.15)
+
+### What changed
+1. **Domain types** — `LocalSnapshot`, `PreviewSession`, `DraftSession`, `AuditEntry`, `IntegrationOperatorStatus` defined; `SyncFetchError` moved to `-domain/errors.ts`.
+2. **Local MSW DB** — explicit in-memory local database in `packages/api/src/msw/data/local-*.ts` with handlers in `local-handlers.ts`. Endpoints: `GET /local/integrations/:id/snapshot`, `PUT /local/integrations/:id/apply-review`, `GET /local/history`. Consumer transport: `getLocalSnapshot`, `applyLocalReview`, `getLocalHistory` from `@portier-sync/api`.
+3. **Orchestration** — `syncNow` reads `localSnapshot.localVersion` as `DraftSession.baseVersion`. `applyReview` is async and calls `applyLocalReview`. Thin `-api/` wrappers deleted.
+4. **Overview** — `OperatorStatusBadge` with 7 states; dynamic CTAs (`Fetch latest` / `Continue review` / `Refresh draft`); pending count from draft session.
+5. **Detail** — local snapshot metadata panel (version, record count, last updated); stale draft warning when `draft.status === 'stale'`.
+6. **Review** — immutable context banner (applicationName, baseVersion, proposedVersion, fetchedAt); three sections (`Conflicts needing decision` / `Resolved conflicts` / `Ready to apply`); `Apply locally` button and dialog; stale blocking alert; `Keep local` / `Accept remote` / `Custom value` decision labels.
+7. **History** — unified timeline merging remote history + local audit entries sorted by timestamp; `Remote` / `Local` provenance badge per row; normalization via `remoteHistoryToAuditEntry`.
+
+### Still open (future backend work)
+- No remote apply/push endpoint exists. `applyLocalReview` writes to local MSW DB only and does not persist to the real backend.
+- `Applied locally` state persists until next fetch for that integration or app reset (local DB is in-memory only and resets on every app start).
+- Multi-remote stale cascade (applying Remote A staleing B/C/D drafts) is enforced at apply time via baseVersion check but not proactively surfaced in the overview.
+- `PreviewSession` type is defined but not yet used as a distinct immutable snapshot object; preview data lives inside `DraftSession.items`.
