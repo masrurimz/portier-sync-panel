@@ -16,7 +16,8 @@ const mswReady = (async () => {
     return;
   }
 
-  const { ensureServerMsw } = await import("./mocks/server");
+  const serverMockModule = "./mocks/server";
+  const { ensureServerMsw } = await import(/* @vite-ignore */ serverMockModule);
   ensureServerMsw();
 })();
 
