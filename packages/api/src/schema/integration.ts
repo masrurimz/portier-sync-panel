@@ -22,6 +22,15 @@ export const INTEGRATION_ICONS = {
 export type IntegrationIcon = keyof typeof INTEGRATION_ICONS;
 export const IntegrationIconSchema = z.enum(Object.keys(INTEGRATION_ICONS) as [IntegrationIcon, ...IntegrationIcon[]]);
 
+// Draft metadata included in integration responses
+export const IntegrationDraftSchema = z.object({
+  status: z.enum(['idle', 'fetching', 'ready', 'failed', 'stale', 'applying', 'applied']),
+  pendingCount: z.number(),
+  reviewedCount: z.number(),
+  fetchedAt: z.string(),
+});
+export type IntegrationDraft = z.infer<typeof IntegrationDraftSchema>;
+
 export const IntegrationSchema = z.object({
   id: IntegrationIdSchema,
   // slug maps to the external API's application_id param (e.g. "salesforce")
@@ -32,6 +41,8 @@ export const IntegrationSchema = z.object({
   lastSynced: z.coerce.date().nullable(),
   version: z.string(),
   lastSyncDuration: z.number().optional(),
+  // Draft metadata - null if no draft exists
+  draft: IntegrationDraftSchema.nullable().optional(),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;
 
