@@ -184,7 +184,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
               <CardContent className="flex flex-col gap-2">
                 <DataPoint label="Current version" value={integration.version} />
                 <DataPoint label="Last synced" value={formatRelativeTime(integration.lastSynced)} />
-                <DataPoint label="Staged for review" value={`${pendingCount} fields`} />
+                <DataPoint label="Pending review" value={`${pendingCount} fields`} />
                 <DataPoint label="Local version" value={localSnapshot?.localVersion ?? integration.version} />
                 <DataPoint label="Local records" value={localSnapshot ? localSnapshot.recordCount.toLocaleString("en-US") : "—"} />
                 <DataPoint label="Local updated" value={localSnapshot ? formatRelativeTime(new Date(localSnapshot.updatedAt)) : "—"} />

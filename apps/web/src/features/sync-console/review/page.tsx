@@ -116,12 +116,12 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
       <PageShell
         eyebrow="Review queue"
         title={`${integration.name} change review`}
-        description="Inspect changes, make decisions on flagged items, stage what to apply."
+        description="Review each difference and choose Keep Current or Accept Incoming. Apply unlocks when all are decided."
         actions={
           <>
-            <Badge variant="outline">{draft.items.length} changes</Badge>
+<Badge variant="outline">{draft.items.length} differences</Badge>
             <Badge variant={grouped.pending.length > 0 ? "destructive" : "secondary"}>
-              {grouped.pending.length} need decision
+{grouped.pending.length} pending
             </Badge>
           </>
         }
@@ -160,7 +160,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
           {/* ── Left: change list ── */}
           <SurfaceSection
             title="Changes"
-            description="Items needing a decision must be resolved before they can be staged and applied."
+            description="Make a decision on every difference. Apply is enabled only when all are decided."
             action={
               <Badge variant={undecidedItems > 0 ? "destructive" : "secondary"}>
                 {undecidedItems > 0 ? `${undecidedItems} pending` : `${decidedItems} reviewed`}
@@ -173,10 +173,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Needs decision</CardTitle>
+<CardTitle className="text-sm">Pending Review</CardTitle>
                       <Badge variant="destructive">{grouped.pending.length}</Badge>
                     </div>
-                    <CardDescription>These items are flagged as requiring your choice before they can be staged.</CardDescription>
+<CardDescription>Each of these differences requires an explicit Keep Current or Accept Incoming choice.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
                     {grouped.pending.map((item) => {
@@ -213,10 +213,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Decided</CardTitle>
+<CardTitle className="text-sm">Reviewed</CardTitle>
                       <Badge variant="secondary">{grouped.resolved.length}</Badge>
                     </div>
-                    <CardDescription>You have made a decision on these items. They will be included when you apply.</CardDescription>
+<CardDescription>You have made a decision on these differences. They will be applied using your choices.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
                     {grouped.resolved.map((item) => {
@@ -291,7 +291,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
 
               <SurfaceSection
                 title="Resolution"
-                description="Choose which value to keep, then the item will be staged automatically."
+                description="Choose which value to keep. All reviewed differences will be applied."
                 action={
                   <Badge variant={!focusItem.resolution.kind ? "destructive" : "outline"}>
                     {!focusItem.resolution.kind
@@ -325,7 +325,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                           onClick={() => setShowConfirm(true)}
                           disabled={!canApply}
                         >
-                          Apply locally
+Apply decisions
                         </Button>
                       </span>
                     </TooltipTrigger>
@@ -347,9 +347,9 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Apply locally</AlertDialogTitle>
+<AlertDialogTitle>Confirm decisions</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to apply locally{" "}
+You are about to apply{" "}
               <span className="font-medium text-foreground">{draft.reviewedCount} decision{draft.reviewedCount !== 1 ? "s" : ""}</span>
               {" "}<span className="font-medium text-foreground">This writes to your local database only</span> and does not affect the remote system.
             </AlertDialogDescription>
