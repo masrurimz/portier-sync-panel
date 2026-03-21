@@ -35,11 +35,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  const [selectedId, setSelectedId] = React.useState(timeline[0]?.id ?? "");
-
-  React.useEffect(() => {
-    setSelectedId(timeline[0]?.id ?? "");
-  }, [timeline]);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
 
   // Guard: integration not yet hydrated in query state
   if (!integration) {
