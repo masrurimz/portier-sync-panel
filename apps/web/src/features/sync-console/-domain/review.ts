@@ -129,7 +129,7 @@ export function applyStatusFromBatch(integration: Integration, batch: ReviewBatc
   };
 }
 
-export function getPreviewLines(batch: ReviewBatch) {
+export function getPreviewLines(batch: { items: ReviewItem[] }) {
   return batch.items.slice(0, 4).map((item) => `${item.entityLabel} • ${item.fieldLabel} • ${item.reason}`);
 }
 
@@ -182,5 +182,7 @@ export interface DraftSession {
   selectedCount: number;
   conflictCount: number;
   unresolvedCount: number;
+  applicationName: string;
+  fetchedAt: string;
   lastError?: SyncFetchError;
 }

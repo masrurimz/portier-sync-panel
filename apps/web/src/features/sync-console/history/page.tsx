@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { Separator } from "@portier-sync/ui/components/separator";
 import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
 
-import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
-import { integrationHistoryQueryOptions } from "../-api/history.query";
+import { integrationsListQueryOptions, historyListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { DataPoint, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function HistoryPage({ integrationId }: { integrationId: IntegrationId }) {
@@ -15,7 +14,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
   const integration = integrations.find((item) => item.id === integrationId);
 
   // Query remote history
-  const { data: history = [] } = useQuery(integrationHistoryQueryOptions(integrationId));
+  const { data: history = [] } = useQuery(historyListQueryOptions({ input: { id: integrationId } }));
 
   const [selectedId, setSelectedId] = React.useState(history[0]?.id ?? "");
 

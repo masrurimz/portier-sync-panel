@@ -108,9 +108,9 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
     [integrationId, focusedId, batch.items, updateReviewDecision],
   );
 
-  const handleConfirmApply = () => {
+  const handleConfirmApply = async () => {
     setShowConfirm(false);
-    const applied = applyReview(integrationId, queryClient);
+    const applied = await applyReview(integrationId, queryClient);
     if (applied) {
       void navigate({ to: "/integration/$integrationId/history", params: { integrationId } });
     }

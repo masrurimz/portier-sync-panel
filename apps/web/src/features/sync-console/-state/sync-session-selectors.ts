@@ -1,8 +1,8 @@
 import type { Integration, IntegrationId } from "@portier-sync/api";
 import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations, integrationHealthSeed } from "../-domain/integration";
-import { conflictItems, getPreviewLines, selectedItems, type ReviewBatch } from "../-domain/review";
+import { conflictItems, getPreviewLines, selectedItems, type DraftSession } from "../-domain/review";
 import type { ConsoleMetric } from "../-domain/integration";
-import type { SyncFetchError } from "../-api/sync-preview";
+import type { SyncFetchError } from "../-domain/errors";
 
 export function selectOverviewMetrics(integrations: Integration[]): ConsoleMetric[] {
   return buildOverviewMetrics(integrations);
@@ -12,15 +12,15 @@ export function selectPriorityIntegrations(integrations: Integration[]) {
   return getPriorityIntegrations(integrations);
 }
 
-export function selectPendingReviewCount(batch: ReviewBatch | undefined): number {
+export function selectPendingReviewCount(batch: DraftSession | undefined): number {
   return batch ? selectedItems(batch.items).length : 0;
 }
 
-export function selectPreviewLines(batch: ReviewBatch | undefined): string[] {
+export function selectPreviewLines(batch: DraftSession | undefined): string[] {
   return batch ? getPreviewLines(batch) : [];
 }
 
-export function selectConflictCount(batch: ReviewBatch | undefined): number {
+export function selectConflictCount(batch: DraftSession | undefined): number {
   return batch ? conflictItems(batch.items).length : 0;
 }
 
@@ -31,7 +31,7 @@ export function selectIntegrationMetrics({
   error,
 }: {
   integration: Integration;
-  batch: ReviewBatch | undefined;
+  batch: DraftSession | undefined;
   integrationId: IntegrationId;
   error: SyncFetchError | null;
 }): ConsoleMetric[] {
