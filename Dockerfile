@@ -15,8 +15,17 @@ COPY packages/api/package.json ./packages/api/
 # Install dependencies
 RUN bun install --frozen-lockfile
 
-# Copy source code
+# Copy source code (includes apps/web/.alchemy/local/wrangler.jsonc committed to repo)
 COPY . .
+
+# Ensure wrangler.jsonc exists — vite plugin validates its presence at build time.
+# The committed file covers the default case; this step is a safety net if it was
+# removed from the repo or overridden via a build arg.
+ARG CORS_ORIGIN=http://localhost:3001
+RUN mkdir -p apps/web/.alchemy/local && \
+    [ -f apps/web/.alchemy/local/wrangler.jsonc ] || \
+    printf '{"name":"portier-sync-web-docker","main":"@tanstack/react-start/server-entry","compatibility_date":"2026-03-17","compatibility_flags":["nodejs_compat","nodejs_compat_populate_process_env"],"assets":{"directory":"../../dist/client","binding":"ASSETS","not_found_handling":"none","html_handling":"auto-trailing-slash","run_worker_first":false},"vars":{"CORS_ORIGIN":"%s"}}' "${CORS_ORIGIN}" \
+    > apps/web/.alchemy/local/wrangler.jsonc
 
 # Build the application
 RUN bun run build

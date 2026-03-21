@@ -26,7 +26,12 @@
 .vercel
 .netlify
 .wrangler
-.alchemy
+# Ignore all alchemy-generated state except the local dev wrangler baseline.
+# Must use /** (content pattern) not bare .alchemy (directory pattern) so that
+# the negation below can override — git won't traverse into an ignored directory.
+.alchemy/**
+!.alchemy/local/
+!.alchemy/local/wrangler.jsonc
 
 # Environment & local files
 .env*

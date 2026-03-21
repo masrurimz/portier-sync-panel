@@ -38,7 +38,11 @@ lerna-debug.log*
 .nx
 
 # Better-T-Stack
-.alchemy
+# Ignore all alchemy-generated state except the local dev wrangler baseline.
+# Must use /** not bare .alchemy so the negation can override.
+.alchemy/**
+!apps/web/.alchemy/local/
+!apps/web/.alchemy/local/wrangler.jsonc
 
 # Testing
 coverage
