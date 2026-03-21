@@ -6,7 +6,19 @@ import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), tailwindcss(), tanstackStart(), viteReact(), alchemy()],
+  build: {
+    target: "esnext",
+    rollupOptions: {
+      external: ["node:async_hooks", "cloudflare:workers"],
+    },
+  },
+  plugins: [
+    alchemy(),
+    tsconfigPaths({ projects: ["./tsconfig.json"] }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
   server: {
     port: 3001,
     host: true,
