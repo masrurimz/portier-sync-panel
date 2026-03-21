@@ -133,7 +133,7 @@ The following were removed as obsolete after architecture cutover:
 
 ## 7) Implementation Notes
 
-- Query client is now shared via `apps/web/src/app/query-client.ts`.
-- Router uses the shared client (`getAppQueryClient`) and no longer wraps with a feature provider.
+- Router creates a fresh `QueryClient` in `getRouter` (request-safe SSR pattern) and no longer wraps with a feature provider.
+- Review store actions receive `queryClient` from call sites (`useQueryClient`) instead of reading a module-level singleton.
 - Integration header/status surfaces consume TanStack Query data directly.
 - Review workflow mutation actions are centralized in Zustand store and patch query cache as needed.

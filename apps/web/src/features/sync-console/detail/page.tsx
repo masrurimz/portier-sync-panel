@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { Button } from "@portier-sync/ui/components/button";
@@ -16,6 +16,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
   const integration = integrations.find((item) => item.id === integrationId);
 
   const { syncNow } = useReviewActions();
+  const queryClient = useQueryClient();
   const syncingId = useSyncingId();
   const batch = useReviewBatch(integrationId);
   const syncError = useSyncError(integrationId) ?? null;
@@ -62,7 +63,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const handleSyncNow = async () => {
     try {
-      const freshBatch = await syncNow(integrationId);
+      const freshBatch = await syncNow(integrationId, queryClient);
       setFetchResult({
         changeCount: freshBatch.items.length,
         conflictCount: freshBatch.items.filter((i) => i.conflict).length,

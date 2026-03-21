@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { Checkbox } from "@portier-sync/ui/components/checkbox";
 import { Separator } from "@portier-sync/ui/components/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@portier-sync/ui/components/tooltip";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
@@ -28,6 +28,7 @@ import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
   const integration = integrations.find((item) => item.id === integrationId);
   const batch = useReviewBatch(integrationId);
@@ -109,7 +110,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const handleConfirmApply = () => {
     setShowConfirm(false);
-    const applied = applyReview(integrationId);
+    const applied = applyReview(integrationId, queryClient);
     if (applied) {
       void navigate({ to: "/integration/$integrationId/history", params: { integrationId } });
     }

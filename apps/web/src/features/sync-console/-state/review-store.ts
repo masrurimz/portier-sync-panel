@@ -1,10 +1,10 @@
 import { historyKeys, integrationsKeys, type Integration, type IntegrationId, type SyncHistoryEntry } from "@portier-sync/api";
+import type { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { useShallow } from "zustand/react/shallow";
 
-import { getAppQueryClient } from "../../../app/query-client";
 import { buildAppliedHistoryEntry } from "../-domain/history";
 import {
   applyStatusFromBatch,
@@ -24,18 +24,17 @@ interface ReviewStoreState {
 }
 
 interface ReviewStoreActions {
-  syncNow: (integrationId: IntegrationId) => Promise<ReviewBatch>;
+  syncNow: (integrationId: IntegrationId, queryClient: QueryClient) => Promise<ReviewBatch>;
   updateReviewDecision: (integrationId: IntegrationId, itemId: string, resolution: ReviewResolution) => void;
   toggleReviewSelection: (integrationId: IntegrationId, itemId: string) => void;
   approveSafeChanges: (integrationId: IntegrationId) => void;
-  applyReview: (integrationId: IntegrationId) => boolean;
+  applyReview: (integrationId: IntegrationId, queryClient: QueryClient) => boolean;
   clearError: (integrationId: IntegrationId) => void;
 }
 
 type ReviewStore = ReviewStoreState & ReviewStoreActions;
 
-function readIntegrationFromCache(integrationId: IntegrationId) {
-  const queryClient = getAppQueryClient();
+function readIntegrationFromCache(queryClient: QueryClient, integrationId: IntegrationId) {
   const list = queryClient.getQueryData<Integration[]>(integrationsKeys.list());
   const fromList = list?.find((item) => item.id === integrationId);
   if (fromList) {
@@ -45,9 +44,11 @@ function readIntegrationFromCache(integrationId: IntegrationId) {
   return queryClient.getQueryData<Integration>(integrationsKeys.detail(integrationId)) ?? null;
 }
 
-function updateIntegrationCache(integrationId: IntegrationId, updater: (integration: Integration) => Integration) {
-  const queryClient = getAppQueryClient();
-
+function updateIntegrationCache(
+  queryClient: QueryClient,
+  integrationId: IntegrationId,
+  updater: (integration: Integration) => Integration,
+) {
   queryClient.setQueryData<Integration[]>(integrationsKeys.list(), (current) =>
     current?.map((item) => (item.id === integrationId ? updater(item) : item)),
   );
@@ -63,8 +64,8 @@ export const useReviewStore = create<ReviewStore>()(
     syncErrors: {},
     syncingId: null,
 
-    syncNow: async (integrationId) => {
-      const integration = readIntegrationFromCache(integrationId);
+    syncNow: async (integrationId, queryClient) => {
+      const integration = readIntegrationFromCache(queryClient, integrationId);
 
       if (!integration) {
         toast.error("Integration not found", { description: "Could not find integration to sync." });
@@ -76,7 +77,7 @@ export const useReviewStore = create<ReviewStore>()(
         state.syncErrors[integrationId] = undefined;
       });
 
-      updateIntegrationCache(integrationId, (current) => ({ ...current, status: "syncing" }));
+      updateIntegrationCache(queryClient, integrationId, (current) => ({ ...current, status: "syncing" }));
 
       try {
         const result = await syncClient.preview({
@@ -96,11 +97,10 @@ export const useReviewStore = create<ReviewStore>()(
           state.reviewBatches[integrationId] = batch;
         });
 
-        updateIntegrationCache(integrationId, (current) =>
+        updateIntegrationCache(queryClient, integrationId, (current) =>
           applyStatusFromBatch({ ...current, lastSynced: new Date() }, batch),
         );
 
-        const queryClient = getAppQueryClient();
         queryClient.setQueryData(syncPreviewQueryKey(integrationId), batch);
 
         if (batch.items.length === 0) {
@@ -120,7 +120,7 @@ export const useReviewStore = create<ReviewStore>()(
           state.syncErrors[integrationId] = normalized;
         });
 
-        updateIntegrationCache(integrationId, (current) => ({ ...current, status: "error" }));
+        updateIntegrationCache(queryClient, integrationId, (current) => ({ ...current, status: "error" }));
 
         toast.error(normalized.title, { description: normalized.message });
         throw error;
@@ -174,9 +174,9 @@ export const useReviewStore = create<ReviewStore>()(
       toast.success("Safe changes marked for approval.");
     },
 
-    applyReview: (integrationId) => {
+    applyReview: (integrationId, queryClient) => {
       const batch = get().reviewBatches[integrationId];
-      const integration = readIntegrationFromCache(integrationId);
+      const integration = readIntegrationFromCache(queryClient, integrationId);
 
       if (!integration) {
         toast.error("Integration not found", { description: "Could not find integration to apply review." });
@@ -207,10 +207,9 @@ export const useReviewStore = create<ReviewStore>()(
         selectedItems: selected,
       });
 
-      const queryClient = getAppQueryClient();
       queryClient.setQueryData<SyncHistoryEntry[]>(historyKeys.list(integrationId), (current) => [historyEntry, ...(current ?? [])]);
 
-      updateIntegrationCache(integrationId, (current) => ({
+      updateIntegrationCache(queryClient, integrationId, (current) => ({
         ...current,
         version: batch.versionAfter,
         status: "synced",
