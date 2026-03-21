@@ -5,13 +5,31 @@ import { historyHandlers } from './handlers/history-handlers'
 import { localHandlers } from './handlers/local-handlers'
 import { draftHandlers, providerHandlers } from './handlers/draft-handlers'
 
-// Service worker for browser-based development mocking.
-// Import this only in browser environments.
-export const worker = setupWorker(
+// Handlers for mocked scaffolding that the take-home app still models locally.
+// These stay enabled in the default browser mode because the external backend only
+// exposes the sync preview endpoint, not integrations/history/local-review endpoints.
+const scaffoldingHandlers = [
   ...integrationHandlers,
-  ...syncHandlers,
   ...draftHandlers,
   ...providerHandlers,
   ...historyHandlers,
   ...localHandlers,
-)
+ ]
+
+// Sync preview handlers for fully mocked development mode only.
+// These intercept requests to https://portier-takehometest.onrender.com/api/v1/data/sync.
+const syncPreviewHandlers = [
+  ...syncHandlers,
+ ]
+
+/**
+ * Full mock worker - intercepts mocked scaffolding plus sync preview responses.
+ * Use ONLY when VITE_MOCK_API=true for local development/testing.
+ */
+export const worker = setupWorker(...scaffoldingHandlers, ...syncPreviewHandlers)
+
+/**
+ * Default browser worker - keeps local scaffolding alive but lets Sync Now hit the
+ * real Portier preview endpoint. This is the truthful take-home mode.
+ */
+export const localWorker = setupWorker(...scaffoldingHandlers)

@@ -116,6 +116,9 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                           {entry.origin === "local" ? "Local" : "Remote"}
                         </Badge>
                         <Badge variant="secondary">{versionDisplay}</Badge>
+                        {entry.changesCount !== undefined && (
+                          <Badge variant="outline" className="border-muted-foreground/30">{entry.changesCount} changes</Badge>
+                        )}
                         <Badge variant={flagged ? "destructive" : "outline"}>{flagged ? "Requires attention" : "Completed"}</Badge>
                       </div>
                     </div>
@@ -138,6 +141,41 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                   {selectedEntry.baseVersion && <DataPoint label="Base version" value={selectedEntry.baseVersion} />}
                   {selectedEntry.resultVersion && <DataPoint label="Result version" value={selectedEntry.resultVersion} />}
                 </div>
+                {/* Change counts - only shown for remote history with counts */}
+                {(selectedEntry.changesCount !== undefined || selectedEntry.addedCount !== undefined || selectedEntry.updatedCount !== undefined || selectedEntry.deletedCount !== undefined) && (
+                  <>
+                    <Separator />
+                    <div className="grid gap-3">
+                      <div className="text-xs font-medium text-muted-foreground">Change breakdown</div>
+                      <div className="flex flex-wrap gap-3">
+                        {selectedEntry.changesCount !== undefined && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Total</span>
+                            <Badge variant="secondary">{selectedEntry.changesCount}</Badge>
+                          </div>
+                        )}
+                        {selectedEntry.addedCount !== undefined && selectedEntry.addedCount > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Added</span>
+                            <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 bg-emerald-500/8">{selectedEntry.addedCount}</Badge>
+                          </div>
+                        )}
+                        {selectedEntry.updatedCount !== undefined && selectedEntry.updatedCount > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Updated</span>
+                            <Badge variant="outline" className="border-blue-500/50 text-blue-600 bg-blue-500/8">{selectedEntry.updatedCount}</Badge>
+                          </div>
+                        )}
+                        {selectedEntry.deletedCount !== undefined && selectedEntry.deletedCount > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-muted-foreground">Deleted</span>
+                            <Badge variant="outline" className="border-red-500/50 text-red-600 bg-red-500/8">{selectedEntry.deletedCount}</Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
                 <Separator />
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
@@ -146,6 +184,12 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                   </CardHeader>
                   <CardContent className="text-muted-foreground">{selectedEntry.details ?? "—"}</CardContent>
                 </Card>
+                {/* Provenance note for local entries */}
+                {selectedEntry.origin === "local" && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-medium">Local apply:</span> This event was recorded when changes were applied locally. It has not been confirmed by the remote system yet.
+                  </div>
+                )}
               </SurfaceSection>
             </div>
           ) : null}

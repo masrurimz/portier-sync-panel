@@ -56,5 +56,8 @@ export const IntegrationOperatorStatusSchema = z.enum([
   'applying-locally',
   'applied-locally',
   'remote-unavailable',
+  // Backend states shown when no draft exists
+  'backend-syncing',
+  'backend-conflict',
 ]);
 export type IntegrationOperatorStatus = z.infer<typeof IntegrationOperatorStatusSchema>;

@@ -49,5 +49,10 @@ export const AuditEntrySchema = z.object({
   remoteVersion: z.string().optional(),
   // Revision of the local snapshot after this apply; only set for origin='local' events.
   localRevision: z.number().int().optional(),
+  // Change counts from remote history; only set for origin='remote' events.
+  changesCount: z.number().optional(),
+  addedCount: z.number().optional(),
+  updatedCount: z.number().optional(),
+  deletedCount: z.number().optional(),
 });
 export type AuditEntry = z.infer<typeof AuditEntrySchema>;

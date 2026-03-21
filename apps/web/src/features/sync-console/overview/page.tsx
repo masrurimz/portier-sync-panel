@@ -26,16 +26,26 @@ function getOperatorStatus(
   integration: { status: Integration["status"] },
   draft: DraftSession | undefined,
 ): IntegrationOperatorStatus {
+  // Map backend status when no draft workflow is active
   if (!draft || draft.status === "idle") {
-    return integration.status === "error" ? "remote-unavailable" : "up-to-date";
+    if (integration.status === "syncing") return "backend-syncing";
+    if (integration.status === "conflict") return "backend-conflict";
+    if (integration.status === "error") return "remote-unavailable";
+    return "up-to-date"; // integration.status === "synced"
   }
+
+  // Draft workflow states - preserve these but don't hide backend error
   if (draft.status === "failed") {
-    return integration.status === "error" ? "remote-unavailable" : "up-to-date";
+    // Draft fetch failed, but show backend status truthfully
+    if (integration.status === "syncing") return "backend-syncing";
+    if (integration.status === "conflict") return "backend-conflict";
+    if (integration.status === "error") return "remote-unavailable";
+    return "up-to-date";
   }
   if (draft.status === "stale") return "stale-draft";
   if (draft.status === "applying") return "applying-locally";
   if (draft.status === "applied") return "applied-locally";
-  if (draft.status === "fetching") return "up-to-date"; // transient; spinner shown elsewhere
+  if (draft.status === "fetching") return "backend-syncing"; // Show syncing state during fetch
   if (draft.status === "ready") {
     return draft.pendingCount > 0 ? "conflicts-need-review" : "preview-ready";
   }
@@ -109,7 +119,9 @@ export function OverviewPage() {
                     if (opStatus === "remote-unavailable") {
                       return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
                     }
-                    return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }}>Fetch latest</LinkButton>;
+                    // backend-conflict: show fetch to get preview for conflicts
+                    // backend-syncing: show manage to check status
+                    return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">View detail</LinkButton>;
                   })()}
                 </div>
               </div>
@@ -192,7 +204,8 @@ export function OverviewPage() {
                         if (opStatus === "applied-locally" || opStatus === "remote-unavailable") {
                           return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
                         }
-                        return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">Manage</LinkButton>;
+                        // backend-conflict, backend-syncing, up-to-date
+                        return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">View detail</LinkButton>;
                       })()}
                     </TableCell>
                   </TableRow>

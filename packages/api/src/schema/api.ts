@@ -9,7 +9,14 @@ export const ApiSuccessResponseSchema = <T extends z.ZodTypeAny>(dataSchema: T) 
 
 export const ApiErrorResponseSchema = z.object({
   error: z.string(),
-  code: z.enum(['missing_parameter', 'invalid_application_id', 'internal_error']),
+  code: z.enum([
+    'missing_parameter',
+    'invalid_application_id',
+    'internal_error',
+    'provider_unavailable',
+    'provider_timeout',
+    'provider_degraded',
+  ]),
   message: z.string(),
 });
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;

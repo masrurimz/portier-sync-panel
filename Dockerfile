@@ -10,6 +10,7 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/env/package.json ./packages/env/
 COPY packages/config/package.json ./packages/config/
 COPY packages/infra/package.json ./packages/infra/
+COPY packages/api/package.json ./packages/api/
 
 # Install dependencies
 RUN bun install --frozen-lockfile
@@ -30,17 +31,12 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-# Copy built artifacts from builder
-COPY --from=builder /app/apps/web/dist ./apps/web/dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+# Copy full workspace from builder so Vite preview can load project config/plugins
+COPY --from=builder /app /app
 
 # Expose port
 EXPOSE 3001
 
-# Start the application
+# Serve using the app's preview script (uses project vite config)
 WORKDIR /app/apps/web
 CMD ["bun", "run", "serve", "--host", "0.0.0.0", "--port", "3001"]

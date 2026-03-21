@@ -12,5 +12,10 @@ export function remoteHistoryToAuditEntry(entry: SyncHistoryEntry): AuditEntry {
     details: entry.details,
     timestamp: entry.timestamp,
     resultVersion: entry.version,
+    // Preserve change counts from remote history
+    changesCount: entry.changesCount,
+    addedCount: entry.addedCount,
+    updatedCount: entry.updatedCount,
+    deletedCount: entry.deletedCount,
   };
 }
