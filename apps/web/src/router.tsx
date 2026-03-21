@@ -7,10 +7,18 @@ import Loader from "./components/loader";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-const mswReady =
-  import.meta.env.DEV && typeof window !== "undefined"
-    ? import("./mocks/browser").then(({ worker }) => worker.start({ onUnhandledRequest: "bypass" }))
-    : Promise.resolve();
+const mswReady = (async () => {
+  if (!import.meta.env.DEV) return;
+
+  if (typeof window !== "undefined") {
+    const { worker } = await import("./mocks/browser");
+    await worker.start({ onUnhandledRequest: "bypass" });
+    return;
+  }
+
+  const { ensureServerMsw } = await import("./mocks/server");
+  ensureServerMsw();
+})();
 
 export async function getRouter() {
   await mswReady;

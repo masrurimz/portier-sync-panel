@@ -9,6 +9,7 @@
     "./schema": "./src/schema/index.ts",
     "./msw": "./src/msw/index.ts",
     "./msw/browser": "./src/msw/browser.ts",
+    "./msw/server": "./src/msw/server.ts",
     "./client": "./src/client.ts"
   },
   "scripts": {
