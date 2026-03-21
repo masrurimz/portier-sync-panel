@@ -31,7 +31,6 @@ export const IntegrationSchema = z.object({
   status: SyncStatusSchema,
   lastSynced: z.coerce.date().nullable(),
   version: z.string(),
-  totalRecords: z.number().optional(),
   lastSyncDuration: z.number().optional(),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;

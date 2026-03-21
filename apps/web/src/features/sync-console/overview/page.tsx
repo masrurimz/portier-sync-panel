@@ -171,7 +171,7 @@ export function OverviewPage() {
                         <IntegrationIcon icon={integration.icon} />
                         <div className="flex flex-col gap-0.5">
                           <span className="font-medium">{integration.name}</span>
-                          <span className="text-muted-foreground">{integration.totalRecords?.toLocaleString("en-US")} modeled records</span>
+                          <span className="text-muted-foreground">{draft ? `${draft.items.length} records in preview` : "No preview fetched"}</span>
                         </div>
                       </div>
                     </TableCell>

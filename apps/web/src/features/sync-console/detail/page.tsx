@@ -43,7 +43,6 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
   const health = integrationHealthSeed[integrationId] ?? {
     reliability: "Status unknown",
     sourceHealth: "healthy" as const,
-    auditRetention: "—",
     nextScheduledSync: "—",
   };
 
@@ -53,7 +52,6 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
     integration,
     pendingUpdates: pendingCount,
     conflicts: batch?.pendingCount ?? 0,
-    health,
     hasFetchError: Boolean(syncError),
   });
 
@@ -98,7 +96,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
         <AlertDescription>
           {syncError
             ? syncError.message
-            : `Next scheduled sync ${health.nextScheduledSync}. Audit retention ${health.auditRetention}. Last healthy sync ${formatRelativeTime(integration.lastSynced)}.`}
+            : `Next scheduled sync ${health.nextScheduledSync}. Last healthy sync ${formatRelativeTime(integration.lastSynced)}.`}
         </AlertDescription>
       </Alert>
 

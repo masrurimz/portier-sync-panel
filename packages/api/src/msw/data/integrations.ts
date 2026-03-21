@@ -11,7 +11,6 @@ export const mockIntegrations: Integration[] = [
     status: 'synced',
     lastSynced: new Date('2026-03-02T08:30:00Z'),
     version: '2.4.1',
-    totalRecords: 12453,
     lastSyncDuration: 45,
   },
   {
@@ -22,7 +21,6 @@ export const mockIntegrations: Integration[] = [
     status: 'conflict',
     lastSynced: new Date('2026-03-02T08:10:00Z'),
     version: '1.8.3',
-    totalRecords: 8521,
     lastSyncDuration: 32,
   },
   {
@@ -33,7 +31,6 @@ export const mockIntegrations: Integration[] = [
     status: 'error',
     lastSynced: new Date('2026-03-01T18:00:00Z'),
     version: '3.1.0',
-    totalRecords: 3200,
     lastSyncDuration: 28,
   },
   {
@@ -44,7 +41,6 @@ export const mockIntegrations: Integration[] = [
     status: 'synced',
     lastSynced: new Date('2026-03-02T08:50:00Z'),
     version: '1.2.5',
-    totalRecords: 450,
     lastSyncDuration: 12,
   },
   {
@@ -55,7 +51,6 @@ export const mockIntegrations: Integration[] = [
     status: 'error',
     lastSynced: new Date('2026-03-01T13:15:00Z'),
     version: '2.0.8',
-    totalRecords: 7234,
     lastSyncDuration: 55,
   },
   {
@@ -66,7 +61,6 @@ export const mockIntegrations: Integration[] = [
     status: 'synced',
     lastSynced: new Date('2026-03-02T07:55:00Z'),
     version: '1.5.2',
-    totalRecords: 2890,
     lastSyncDuration: 18,
   },
 ]

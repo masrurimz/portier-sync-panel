@@ -3,7 +3,6 @@ import type { Integration, IntegrationId } from '@portier-sync/api';
 export interface IntegrationHealthMeta {
   reliability: string;
   sourceHealth: "healthy" | "degraded" | "timeout";
-  auditRetention: string;
   nextScheduledSync: string;
 }
 
@@ -17,37 +16,31 @@ export const integrationHealthSeed: Record<IntegrationId, IntegrationHealthMeta>
   "1": {
     reliability: "Source healthy • preview available • low-risk updates can be reviewed immediately",
     sourceHealth: "healthy",
-    auditRetention: "90 days",
     nextScheduledSync: "Today • 14:00",
   },
   "2": {
     reliability: "Source healthy • preview fetched • operator review required before apply",
     sourceHealth: "healthy",
-    auditRetention: "90 days",
     nextScheduledSync: "Today • 13:30",
   },
   "3": {
     reliability: "Provider degraded • preview could not be refreshed • no new changes applied",
     sourceHealth: "degraded",
-    auditRetention: "90 days",
     nextScheduledSync: "Retry in 15 minutes",
   },
   "4": {
     reliability: "Live fetch in progress • workspace change set is still loading",
     sourceHealth: "healthy",
-    auditRetention: "30 days",
     nextScheduledSync: "Running now",
   },
   "5": {
     reliability: "Provider timed out • last known review queue preserved for audit only",
     sourceHealth: "timeout",
-    auditRetention: "90 days",
     nextScheduledSync: "Retry in 30 minutes",
   },
   "6": {
     reliability: "Source healthy • last batch completed with no items needing a decision",
     sourceHealth: "healthy",
-    auditRetention: "60 days",
     nextScheduledSync: "Today • 15:00",
   },
 };
@@ -77,21 +70,14 @@ export function buildIntegrationMetrics({
   integration,
   pendingUpdates,
   conflicts,
-  health,
   hasFetchError,
 }: {
   integration: Integration;
   pendingUpdates: number;
   conflicts: number;
-  health: IntegrationHealthMeta;
   hasFetchError: boolean;
 }): ConsoleMetric[] {
   return [
-    {
-      label: "Total records",
-      value: new Intl.NumberFormat("en-US").format(integration.totalRecords ?? 0),
-      hint: "Modeled entity count currently mirrored for this connector.",
-    },
     {
       label: "Pending updates",
       value: String(pendingUpdates),
@@ -106,11 +92,6 @@ export function buildIntegrationMetrics({
       label: "Last sync duration",
       value: `${integration.lastSyncDuration ?? 0}s`,
       hint: `Last healthy sync ${formatRelativeTime(integration.lastSynced)}.`,
-    },
-    {
-      label: "Audit retention",
-      value: health.auditRetention,
-      hint: "Applied review decisions remain visible in history for auditability.",
     },
   ];
 }

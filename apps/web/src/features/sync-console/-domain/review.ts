@@ -96,9 +96,11 @@ export function buildBatchFromApi(integrationId: IntegrationId, integration: Int
 }
 
 export function bumpVersion(version: string) {
-  const match = /v(\d+)\.(\d+)\.(\d+)/.exec(version);
+  // Handle both 'v2.4.1' and '2.4.1' formats
+  const match = /v?(\d+)\.(\d+)\.(\d+)/.exec(version);
   if (!match) return version;
-  return `v${match[1]}.${match[2]}.${Number(match[3]) + 1}`;
+  const prefix = version.startsWith('v') ? 'v' : '';
+  return `${prefix}${match[1]}.${match[2]}.${Number(match[3]) + 1}`;
 }
 
 /**

@@ -5,7 +5,7 @@ import { config } from "dotenv";
 config({ path: "./.env" });
 config({ path: "../../apps/web/.env" });
 
-const app = await alchemy("portier-sync");
+const app = await alchemy("portier-sync", { profile: "zahid" });
 
 export const web = await TanStackStart("web", {
   cwd: "../../apps/web",

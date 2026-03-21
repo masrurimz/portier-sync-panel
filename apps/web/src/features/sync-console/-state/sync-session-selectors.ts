@@ -1,5 +1,5 @@
-import type { Integration, IntegrationId } from "@portier-sync/api";
-import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations, integrationHealthSeed } from "../-domain/integration";
+import type { Integration } from "@portier-sync/api";
+import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations } from "../-domain/integration";
 import { pendingItems, getPreviewLines, type DraftSession } from "../-domain/review";
 import type { ConsoleMetric } from "../-domain/integration";
 import type { SyncFetchError } from "../-domain/errors";
@@ -27,26 +27,16 @@ export function selectPendingCount(batch: DraftSession | undefined): number {
 export function selectIntegrationMetrics({
   integration,
   batch,
-  integrationId,
   error,
 }: {
   integration: Integration;
   batch: DraftSession | undefined;
-  integrationId: IntegrationId;
   error: SyncFetchError | null;
 }): ConsoleMetric[] {
-  const health = integrationHealthSeed[integrationId] ?? {
-    reliability: "Status unknown",
-    sourceHealth: "healthy" as const,
-    auditRetention: "—",
-    nextScheduledSync: "—",
-  };
-
   return buildIntegrationMetrics({
     integration,
     pendingUpdates: selectPendingReviewCount(batch),
     conflicts: selectPendingCount(batch),
-    health,
     hasFetchError: Boolean(error),
   });
 }
