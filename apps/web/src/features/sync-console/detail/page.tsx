@@ -8,7 +8,7 @@ import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, R
 import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
 import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
-import { useReviewActions, useReviewBatch, useSyncError, useSyncingId } from "../-state/review-store";
+import { useIsSyncing, useReviewActions, useReviewBatch, useSyncError } from "../-state/review-store";
 import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-ui/ui";
 
 export function DetailPage({ integrationId }: { integrationId: IntegrationId }) {
@@ -17,10 +17,9 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const { syncNow } = useReviewActions();
   const queryClient = useQueryClient();
-  const syncingId = useSyncingId();
+  const isSyncing = useIsSyncing(integrationId);
   const batch = useReviewBatch(integrationId);
   const syncError = useSyncError(integrationId) ?? null;
-  const isSyncing = syncingId === integrationId;
 
   // Guard: integration not yet hydrated in query state
   if (!integration) {

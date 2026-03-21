@@ -1,4 +1,4 @@
-import { $fetch, syncKeys } from "@portier-sync/api";
+import { $fetch } from "@portier-sync/api";
 import type { ApiErrorResponse, SyncData } from "@portier-sync/api";
 
 // Success response type for the sync preview endpoint (status 200)
@@ -13,13 +13,9 @@ export type SyncPreviewResponse =
   | { status: 200; body: SyncPreviewSuccessResponse }
   | { status: 400 | 500 | 502; body: ApiErrorResponse };
 
-// Legacy query key kept for TanStack Query cache interop (setQueryData in provider).
-export const syncPreviewQueryKey = (integrationId: string) =>
-  syncKeys.preview(integrationId);
-
-// Client wrapper that preserves the legacy ts-rest call signature and return shape.
-// The provider expects `{ query: { application_id } }` input and `{ status, body }` output.
-// $fetch throws on error, so we catch and convert to the expected error shape.
+// Client wrapper that keeps a `{ status, body }` shape until sync preview fully migrates to
+// a TanStack Query mutation hook. $fetch throws on HTTP errors, so we normalize into
+// an explicit response union the store can handle deterministically.
 export const syncClient = {
   preview: async (args: { query: { application_id: string } }): Promise<SyncPreviewResponse> => {
     try {

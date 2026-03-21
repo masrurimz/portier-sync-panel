@@ -137,3 +137,6 @@ The following were removed as obsolete after architecture cutover:
 - Review store actions receive `queryClient` from call sites (`useQueryClient`) instead of reading a module-level singleton.
 - Integration header/status surfaces consume TanStack Query data directly.
 - Review workflow mutation actions are centralized in Zustand store and patch query cache as needed.
+- Sync preview state is not manually seeded into TanStack Query from review batches; preview query identity is API `application_id` (integration slug), not route `integrationId`.
+- Sync in-flight tracking is per integration (`syncingById`) to allow parallel work across integrations while blocking duplicate requests for the same integration.
+- `applyReview` now enforces a version guard (`integration.version === batch.versionBefore`) and rejects stale batches instead of projecting outdated state into cache/history.

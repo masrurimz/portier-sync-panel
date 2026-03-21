@@ -15,12 +15,12 @@ import {
   type ReviewResolution,
 } from "../-domain/review";
 import { normalizeApiError, normalizeThrownError, type SyncFetchError } from "../-api/sync-preview";
-import { syncClient, syncPreviewQueryKey } from "../-api/sync-preview.query";
+import { syncClient } from "../-api/sync-preview.query";
 
 interface ReviewStoreState {
   reviewBatches: Record<IntegrationId, ReviewBatch>;
   syncErrors: Partial<Record<IntegrationId, SyncFetchError>>;
-  syncingId: IntegrationId | null;
+  syncingById: Partial<Record<IntegrationId, boolean>>;
 }
 
 interface ReviewStoreActions {
@@ -58,11 +58,29 @@ function updateIntegrationCache(
   );
 }
 
+function buildConcurrentSyncError(): SyncFetchError {
+  return {
+    code: "concurrent_request",
+    title: "Sync already running",
+    message: "A sync preview is already in progress for this integration.",
+    retryable: false,
+  };
+}
+
+function buildStaleBatchError(): SyncFetchError {
+  return {
+    code: "stale_batch",
+    title: "Review is out of date",
+    message: "This review batch is based on an older integration version. Fetch the latest preview before applying.",
+    retryable: false,
+  };
+}
+
 export const useReviewStore = create<ReviewStore>()(
   immer((set, get) => ({
     reviewBatches: {},
     syncErrors: {},
-    syncingId: null,
+    syncingById: {},
 
     syncNow: async (integrationId, queryClient) => {
       const integration = readIntegrationFromCache(queryClient, integrationId);
@@ -72,8 +90,17 @@ export const useReviewStore = create<ReviewStore>()(
         throw new Error(`Integration ${integrationId} not found`);
       }
 
+      if (get().syncingById[integrationId]) {
+        const concurrentError = buildConcurrentSyncError();
+        set((state) => {
+          state.syncErrors[integrationId] = concurrentError;
+        });
+        toast.error(concurrentError.title, { description: concurrentError.message });
+        throw concurrentError;
+      }
+
       set((state) => {
-        state.syncingId = integrationId;
+        state.syncingById[integrationId] = true;
         state.syncErrors[integrationId] = undefined;
       });
 
@@ -101,8 +128,6 @@ export const useReviewStore = create<ReviewStore>()(
           applyStatusFromBatch({ ...current, lastSynced: new Date() }, batch),
         );
 
-        queryClient.setQueryData(syncPreviewQueryKey(integrationId), batch);
-
         if (batch.items.length === 0) {
           toast.info(`${integration.name} returned no changes to review.`);
         } else if (conflictItems(batch.items).length > 0) {
@@ -123,10 +148,10 @@ export const useReviewStore = create<ReviewStore>()(
         updateIntegrationCache(queryClient, integrationId, (current) => ({ ...current, status: "error" }));
 
         toast.error(normalized.title, { description: normalized.message });
-        throw error;
+        throw normalized;
       } finally {
         set((state) => {
-          state.syncingId = null;
+          state.syncingById[integrationId] = false;
         });
       }
     },
@@ -188,6 +213,15 @@ export const useReviewStore = create<ReviewStore>()(
         return false;
       }
 
+      if (integration.version !== batch.versionBefore) {
+        const staleBatchError = buildStaleBatchError();
+        set((state) => {
+          state.syncErrors[integrationId] = staleBatchError;
+        });
+        toast.error(staleBatchError.title, { description: staleBatchError.message });
+        return false;
+      }
+
       const selected = selectedItems(batch.items);
       const unresolved = selected.filter((item) => item.conflict && !item.resolution.kind);
 
@@ -242,7 +276,8 @@ export const useReviewStore = create<ReviewStore>()(
   })),
 );
 
-export const useSyncingId = () => useReviewStore((state) => state.syncingId);
+export const useIsSyncing = (integrationId: IntegrationId) =>
+  useReviewStore((state) => Boolean(state.syncingById[integrationId]));
 
 export const useReviewBatch = (integrationId: IntegrationId) =>
   useReviewStore((state) => state.reviewBatches[integrationId]);
