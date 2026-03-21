@@ -6,39 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { Separator } from "@portier-sync/ui/components/separator";
 import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
 
-import type { IntegrationId, SyncHistoryEntry } from "@portier-sync/api";
-import { useSyncSession } from "../-state/sync-session-provider";
+import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { integrationHistoryQueryOptions } from "../-api/history.query";
 import { DataPoint, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function HistoryPage({ integrationId }: { integrationId: IntegrationId }) {
-  const { integrations, historyByIntegration } = useSyncSession();
+  const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
   const integration = integrations.find((item) => item.id === integrationId);
 
   // Query remote history
-  const { data: remoteHistory = [] } = useQuery(integrationHistoryQueryOptions(integrationId));
-
-  // Merge local and remote history, deduping by id
-  const localHistory = historyByIntegration[integrationId] ?? [];
-  const history = React.useMemo(() => {
-    const seen = new Set<string>();
-    const merged: SyncHistoryEntry[] = [];
-    // Local history first (more recent, from apply actions)
-    for (const entry of localHistory) {
-      if (!seen.has(entry.id)) {
-        seen.add(entry.id);
-        merged.push(entry);
-      }
-    }
-    // Then remote history
-    for (const entry of remoteHistory) {
-      if (!seen.has(entry.id)) {
-        seen.add(entry.id);
-        merged.push(entry);
-      }
-    }
-    return merged;
-  }, [localHistory, remoteHistory]);
+  const { data: history = [] } = useQuery(integrationHistoryQueryOptions(integrationId));
 
   const [selectedId, setSelectedId] = React.useState(history[0]?.id ?? "");
 
@@ -46,7 +23,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
     setSelectedId(history[0]?.id ?? "");
   }, [history]);
 
-  // Guard: integration not yet hydrated in session state
+  // Guard: integration not yet hydrated in query state
   if (!integration) {
     return (
       <PageShell

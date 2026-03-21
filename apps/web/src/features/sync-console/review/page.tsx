@@ -15,11 +15,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { Checkbox } from "@portier-sync/ui/components/checkbox";
 import { Separator } from "@portier-sync/ui/components/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@portier-sync/ui/components/tooltip";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
-import type { IntegrationId } from "@portier-sync/api";
-import { useSyncSession } from "../-state/sync-session-provider";
+import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
+import { useReviewActions, useReviewBatch } from "../-state/review-store";
 import { ReviewResolutionForm } from "./review-resolution-form";
 import { getItemIndicator } from "./-ui/get-item-indicator";
 import { ReviewStat, ValuePanel } from "./-ui";
@@ -27,17 +28,15 @@ import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) {
   const navigate = useNavigate();
+  const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
+  const integration = integrations.find((item) => item.id === integrationId);
+  const batch = useReviewBatch(integrationId);
   const {
-    integrations,
-    reviewBatches,
     updateReviewDecision,
     toggleReviewSelection,
     approveSafeChanges,
     applyReview,
-  } = useSyncSession();
-
-  const integration = integrations.find((item) => item.id === integrationId);
-  const batch = reviewBatches[integrationId];
+  } = useReviewActions();
 
   const [focusedId, setFocusedId] = React.useState(batch?.items[0]?.id ?? "");
   const [showConfirm, setShowConfirm] = React.useState(false);

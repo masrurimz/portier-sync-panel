@@ -1,4 +1,4 @@
-import { integrationDetailQueryOptions } from "@portier-sync/api";
+import { integrationDetailQueryOptions, integrationsListQueryOptions } from "@portier-sync/api";
 import { buttonVariants } from "@portier-sync/ui/components/button";
 import {
   Breadcrumb,
@@ -11,7 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { StatusBadge, useSyncSession } from "../features/sync-console";
+import { StatusBadge } from "../features/sync-console";
 
 export const Route = createFileRoute("/integration/$integrationId")({
   ssr: false,
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/integration/$integrationId")({
 
 function IntegrationLayoutRoute() {
   const { integrationId } = Route.useParams();
-  const { integrations } = useSyncSession();
+  const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
   const { data: detailData, isLoading } = useQuery(integrationDetailQueryOptions({ input: { id: integrationId } }));
   const integration = integrations.find((item) => item.id === integrationId) ?? detailData;
 

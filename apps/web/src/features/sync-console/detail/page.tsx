@@ -1,24 +1,27 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
-import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
+import { Button } from "@portier-sync/ui/components/button";
 import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 
-import type { IntegrationId } from "@portier-sync/api";
-import { useSyncSession } from "../-state/sync-session-provider";
+import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
 import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
+import { useReviewActions, useReviewBatch, useSyncError, useSyncingId } from "../-state/review-store";
 import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-ui/ui";
 
 export function DetailPage({ integrationId }: { integrationId: IntegrationId }) {
-  const { integrations, syncingId, syncNow, reviewBatches, syncErrors } = useSyncSession();
-
+  const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
   const integration = integrations.find((item) => item.id === integrationId);
-  const batch = reviewBatches[integrationId];
-  const syncError = syncErrors[integrationId] ?? null;
+
+  const { syncNow } = useReviewActions();
+  const syncingId = useSyncingId();
+  const batch = useReviewBatch(integrationId);
+  const syncError = useSyncError(integrationId) ?? null;
   const isSyncing = syncingId === integrationId;
 
-  // Guard: integration not yet hydrated in session state
+  // Guard: integration not yet hydrated in query state
   if (!integration) {
     return (
       <PageShell
@@ -67,7 +70,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
       });
     } catch {
       setFetchResult(null);
-      // toast feedback is handled in the sync session; stay on the detail page on failure.
+      // toast feedback is handled in the review store; stay on the detail page on failure.
     }
   };
 

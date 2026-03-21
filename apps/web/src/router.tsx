@@ -1,10 +1,9 @@
-import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
-import { AppSyncSessionProvider } from "./app/providers/sync-session-provider";
 import Loader from "./components/loader";
 
+import { getAppQueryClient } from "./app/query-client";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
@@ -16,12 +15,7 @@ const mswReady =
 export async function getRouter() {
   await mswReady;
 
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
+  const queryClient = getAppQueryClient();
 
   const router = createRouter({
     routeTree,
@@ -30,7 +24,6 @@ export async function getRouter() {
     defaultPreload: "intent",
     defaultPendingComponent: () => <Loader />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
-    Wrap: ({ children }) => <AppSyncSessionProvider>{children}</AppSyncSessionProvider>,
   });
 
   setupRouterSsrQueryIntegration({
