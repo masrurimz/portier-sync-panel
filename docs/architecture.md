@@ -85,3 +85,39 @@ Local entries are never back-filled as remote-confirmed events; they remain dist
 - All sync-console routes are currently `ssr: false`.
 - Reason: browser-side MSW provides integrations/history data; server-rendering would bypass those handlers and produce empty or errored responses.
 - Follow-up: `portier-sync-7mc` and `portier-sync-s2c` (on a separate branch) track the path to proper dual server/browser MSW and selective SSR restoration.
+
+## Design Decisions
+
+### Why a dedicated `packages/api` package
+
+Keeping schemas, the fetch client, query factories, and MSW handlers in a single package enforces a strict one-way dependency. The web app cannot reach the network without going through a typed endpoint in `api-contract.ts`. If the API changes shape, the Zod schema fails; the web app cannot silently operate on stale data. MSW handlers live in the same package so they are forced to satisfy the same schemas — a handler that returns a field the schema doesn't know about will surface at validation time, not at runtime in a component.
+
+### Why `-domain/` is pure TypeScript with no React
+
+`-domain/` contains the business logic the brief specifically evaluates: conflict detection, resolution modeling, error classification, provenance rules. Keeping it framework-free means:
+
+- The rules can be read and tested without mounting a component tree.
+- A future migration (React → something else, Zustand → something else) doesn't touch the domain layer.
+- The brief's question — 'how does the system make sync safe, transparent, reviewable, auditable?' — has a single file to answer it: `-domain/review.ts`.
+
+### Why `DraftSession.baseRevision` instead of a timestamp
+
+A revision counter (integer) is used as the CAS token rather than a timestamp because:
+
+- Timestamps are ambiguous under concurrent writes (two writes within the same millisecond would not be detected).
+- The revision starts at 1 and increments on every successful apply. There is no ambiguity about ordering.
+- The server-side CAS check in `local-handlers.ts` is the authoritative guard. The client-side pre-flight check in `applyReview()` is advisory — it provides a fast failure path and a better error message (`stale_batch`) before the round-trip.
+
+### Why the three-way resolution model (`local` / `external` / `merged`)
+
+The brief gives an example: `john@company.com` vs `j.smith@newdomain.com`. Neither value is trivially correct. The three-way model acknowledges this:
+
+- `local` — the current system value is authoritative for this field.
+- `external` — the incoming value should replace it.
+- `merged` — neither value is right; the operator supplies the correct one.
+
+This maps directly to standard three-way merge semantics. Any resolution model with fewer choices forces an implicit policy the operator didn't approve.
+
+### Why MSW instead of a fake backend
+
+A fake Node server would need to be started separately, would not be intercepting the same fetch calls the real API uses, and would introduce a second process into the reviewer's setup. MSW runs in the browser service worker layer: the same `fetch()` call that hits the real API in production is intercepted in the browser in development. The real-vs-mocked boundary is a single boolean (`VITE_MOCK_API`) and it is visible in code, not in a `.env` comment. See `docs/runtime-modes.md` for the full boundary table.
