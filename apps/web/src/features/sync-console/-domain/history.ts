@@ -10,7 +10,7 @@ export function buildAppliedHistoryEntry({
   version: string;
   selectedItems: ReviewItem[];
 }): SyncHistoryEntry {
-  const conflicts = selectedItems.filter((item) => item.conflict).length;
+  const conflicts = selectedItems.filter((item) => item.requiresDecision).length;
   return {
     id: `hist-${integrationId}-${Date.now()}`,
     integrationId,

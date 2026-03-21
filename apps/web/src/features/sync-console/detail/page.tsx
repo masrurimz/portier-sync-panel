@@ -49,16 +49,16 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
 
   const previewLines = batch ? selectPreviewLines(batch) : [];
   const pendingCount = batch ? selectPendingReviewCount(batch) : 0;
-  const conflictCount = batch ? batch.items.filter((item) => item.conflict).length : 0;
+  const manualDecisionCount = batch ? batch.items.filter((item) => item.requiresDecision).length : 0;
   const metrics = buildIntegrationMetrics({
     integration,
     pendingUpdates: pendingCount,
-    conflicts: conflictCount,
+    conflicts: manualDecisionCount,
     health,
     hasFetchError: Boolean(syncError),
   });
 
-  const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; conflictCount: number; appName: string } | null>(null);
+  const [fetchResult, setFetchResult] = React.useState<{ changeCount: number; needsDecisionCount: number; appName: string } | null>(null);
 
   React.useEffect(() => {
     setFetchResult(null);
@@ -69,7 +69,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
       const freshBatch = await syncNow(integrationId, queryClient);
       setFetchResult({
         changeCount: freshBatch.items.length,
-        conflictCount: freshBatch.items.filter((i) => i.conflict).length,
+        needsDecisionCount: freshBatch.items.filter((i) => i.requiresDecision).length,
         appName: freshBatch.applicationName,
       });
     } catch {
@@ -123,7 +123,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
             <CardDescription>
               {fetchResult.changeCount === 0
                 ? `${fetchResult.appName} returned no changes.`
-                : `Found ${fetchResult.changeCount} change${fetchResult.changeCount !== 1 ? "s" : ""} — ${fetchResult.conflictCount} require${fetchResult.conflictCount !== 1 ? "" : "s"} resolution.`}
+                : `Found ${fetchResult.changeCount} change${fetchResult.changeCount !== 1 ? "s" : ""} — ${fetchResult.needsDecisionCount} need${fetchResult.needsDecisionCount !== 1 ? "" : "s"} a decision.`}
             </CardDescription>
           </CardHeader>
           {fetchResult.changeCount > 0 && (
@@ -185,7 +185,7 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
               <CardContent className="flex flex-col gap-2">
                 <DataPoint label="Current version" value={integration.version} />
                 <DataPoint label="Last synced" value={formatRelativeTime(integration.lastSynced)} />
-                <DataPoint label="Pending review" value={`${pendingCount} fields`} />
+                <DataPoint label="Staged for review" value={`${pendingCount} fields`} />
                 <DataPoint label="Local version" value={localSnapshot?.localVersion ?? integration.version} />
                 <DataPoint label="Local records" value={localSnapshot ? localSnapshot.recordCount.toLocaleString("en-US") : "—"} />
                 <DataPoint label="Local updated" value={localSnapshot ? formatRelativeTime(new Date(localSnapshot.updatedAt)) : "—"} />

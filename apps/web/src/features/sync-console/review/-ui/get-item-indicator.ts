@@ -7,13 +7,13 @@ import type { ReviewItem } from '../../-domain/review';
  * Safe items are green when included, muted when excluded.
  */
 export function getItemIndicator(item: ReviewItem) {
-  if (item.conflict && !item.resolution.kind) {
+  if (item.requiresDecision && !item.resolution.kind) {
     return { Icon: AlertTriangleIcon, color: 'text-amber-500', label: 'Needs decision' } as const;
   }
-  if (item.conflict) {
-    return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Resolved' } as const;
+  if (item.requiresDecision) {
+    return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Decided' } as const;
   }
-  if (item.selected) {
+  if (item.staged) {
     return { Icon: CheckCircle2Icon, color: 'text-emerald-500', label: 'Approved' } as const;
   }
   return { Icon: CircleIcon, color: 'text-muted-foreground', label: 'Skipped' } as const;

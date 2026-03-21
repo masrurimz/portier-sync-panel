@@ -15,8 +15,8 @@ import { useShallow } from "zustand/react/shallow";
 
 import {
   buildBatchFromApi,
-  conflictItems,
-  selectedItems,
+  needsDecisionItems,
+  stagedItems,
   type DraftSession,
   type ReviewResolution,
 } from "../-domain/review";
@@ -31,7 +31,7 @@ interface ReviewStoreActions {
   syncNow: (integrationId: IntegrationId, queryClient: QueryClient) => Promise<DraftSession>;
   updateReviewDecision: (integrationId: IntegrationId, itemId: string, resolution: ReviewResolution) => void;
   toggleReviewSelection: (integrationId: IntegrationId, itemId: string) => void;
-  approveSafeChanges: (integrationId: IntegrationId) => void;
+  stageReadyChanges: (integrationId: IntegrationId) => void;
   applyReview: (integrationId: IntegrationId, queryClient: QueryClient) => Promise<boolean>;
   clearError: (integrationId: IntegrationId) => void;
 }
@@ -75,12 +75,11 @@ function updateIntegrationCache(
   );
 }
 
-// Recompute derived counts whenever items mutate.
 function computeDraftCounts(items: DraftSession["items"]) {
   return {
-    selectedCount: selectedItems(items).length,
-    conflictCount: conflictItems(items).length,
-    unresolvedCount: items.filter((i) => i.conflict && !i.resolution.kind).length,
+    stagedCount: stagedItems(items).length,
+    manualDecisionCount: needsDecisionItems(items).length,
+    undecidedCount: items.filter((i) => i.requiresDecision && !i.resolution.kind).length,
   };
 }
 
@@ -120,9 +119,9 @@ export const useReviewStore = create<ReviewStore>()(
           proposedVersion: current?.proposedVersion ?? "",
           status: "fetching",
           items: current?.items ?? [],
-          selectedCount: current?.selectedCount ?? 0,
-          conflictCount: current?.conflictCount ?? 0,
-          unresolvedCount: current?.unresolvedCount ?? 0,
+          stagedCount: current?.stagedCount ?? 0,
+          manualDecisionCount: current?.manualDecisionCount ?? 0,
+          undecidedCount: current?.undecidedCount ?? 0,
           applicationName: current?.applicationName ?? integration.name,
           fetchedAt: current?.fetchedAt ?? "",
           lastError: undefined,
@@ -166,15 +165,15 @@ export const useReviewStore = create<ReviewStore>()(
         // Update integration cache status based on conflicts found.
         updateIntegrationCache(queryClient, integrationId, (c) => ({
           ...c,
-          status: counts.conflictCount > 0 ? "conflict" : "synced",
+          status: counts.manualDecisionCount > 0 ? "conflict" : "synced",
           lastSynced: new Date(),
         }));
 
         if (batch.items.length === 0) {
           toast.info(`${integration.name} returned no changes to review.`);
-        } else if (counts.conflictCount > 0) {
+        } else if (counts.manualDecisionCount > 0) {
           toast.warning(
-            `${integration.name} preview fetched with ${counts.conflictCount} conflict${counts.conflictCount > 1 ? "s" : ""}.`,
+            `${integration.name} preview fetched with ${counts.manualDecisionCount} item${counts.manualDecisionCount > 1 ? "s" : ""} requiring decision.`,
           );
         } else {
           toast.success(`${integration.name} preview fetched successfully.`);
@@ -204,11 +203,11 @@ export const useReviewStore = create<ReviewStore>()(
         const item = draft.items.find((e) => e.id === itemId);
         if (!item) return;
         item.resolution = { ...resolution };
-        item.selected = true;
+        item.staged = true;
         const counts = computeDraftCounts(draft.items);
-        draft.selectedCount = counts.selectedCount;
-        draft.conflictCount = counts.conflictCount;
-        draft.unresolvedCount = counts.unresolvedCount;
+        draft.stagedCount = counts.stagedCount;
+        draft.manualDecisionCount = counts.manualDecisionCount;
+        draft.undecidedCount = counts.undecidedCount;
       });
     },
 
@@ -218,22 +217,23 @@ export const useReviewStore = create<ReviewStore>()(
         if (!draft) return;
         const item = draft.items.find((e) => e.id === itemId);
         if (!item) return;
-        item.selected = !item.selected;
-        draft.selectedCount = computeDraftCounts(draft.items).selectedCount;
+        if (item.requiresDecision && !item.resolution.kind) return;
+        item.staged = !item.staged;
+        draft.stagedCount = computeDraftCounts(draft.items).stagedCount;
       });
     },
 
-    approveSafeChanges: (integrationId) => {
+    stageReadyChanges: (integrationId) => {
       set((state) => {
         const draft = state.draftSessions[integrationId];
         if (!draft) return;
         for (const item of draft.items) {
-          if (item.conflict) continue;
-          item.selected = true;
+          if (item.requiresDecision && !item.resolution.kind) continue;
+          item.staged = true;
           item.resolution = { kind: "external" };
         }
         const counts = computeDraftCounts(draft.items);
-        draft.selectedCount = counts.selectedCount;
+        draft.stagedCount = counts.stagedCount;
       });
       toast.success("Safe changes marked for approval.");
     },
@@ -283,15 +283,15 @@ export const useReviewStore = create<ReviewStore>()(
         return false;
       }
 
-      const selected = selectedItems(draft.items);
-      const unresolved = selected.filter((item) => item.conflict && !item.resolution.kind);
+      const selected = stagedItems(draft.items);
+      const unresolved = selected.filter((item) => item.requiresDecision && !item.resolution.kind);
 
       if (selected.length === 0) {
         toast.error("Select at least one change before applying.");
         return false;
       }
       if (unresolved.length > 0) {
-        toast.error("Resolve every selected conflict before applying.");
+        toast.error("Decide all items requiring a decision before applying.");
         return false;
       }
 
@@ -301,7 +301,7 @@ export const useReviewStore = create<ReviewStore>()(
       });
 
       try {
-        const conflictResolutionCount = selected.filter((i) => i.conflict).length;
+        const conflictResolutionCount = selected.filter((i) => i.requiresDecision && !!i.resolution.kind).length;
         const { snapshot } = await applyLocalReview({
           integrationId,
           proposedVersion: draft.proposedVersion,
@@ -375,7 +375,7 @@ export const useReviewActions = () =>
       syncNow: state.syncNow,
       updateReviewDecision: state.updateReviewDecision,
       toggleReviewSelection: state.toggleReviewSelection,
-      approveSafeChanges: state.approveSafeChanges,
+      stageReadyChanges: state.stageReadyChanges,
       applyReview: state.applyReview,
       clearError: state.clearError,
     })),

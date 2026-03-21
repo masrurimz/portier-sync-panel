@@ -37,7 +37,7 @@ function getOperatorStatus(
   if (draft.status === "applied") return "applied-locally";
   if (draft.status === "fetching") return "up-to-date"; // transient; spinner shown elsewhere
   if (draft.status === "ready") {
-    return draft.unresolvedCount > 0 ? "conflicts-need-review" : "preview-ready";
+    return draft.undecidedCount > 0 ? "conflicts-need-review" : "preview-ready";
   }
   return "up-to-date";
 }
@@ -91,7 +91,7 @@ export function OverviewPage() {
                     <OperatorStatusBadge status={getOperatorStatus(integration, draftSessions[integration.id])} />
                   </div>
                   <div className="grid gap-2 md:grid-cols-3">
-                    <DataPoint label="Pending review" value={`${draftSessions[integration.id]?.selectedCount ?? 0} fields`} />
+                    <DataPoint label="Pending review" value={`${draftSessions[integration.id]?.stagedCount ?? 0} fields`} />
                     <DataPoint label="Last sync" value={formatRelativeTime(integration.lastSynced)} />
                     <DataPoint label="Version" value={integration.version} />
                   </div>
@@ -178,7 +178,7 @@ export function OverviewPage() {
                     <TableCell>
                       <OperatorStatusBadge status={opStatus} />
                     </TableCell>
-                    <TableCell>{draft ? draft.selectedCount : 0}</TableCell>
+                    <TableCell>{draft ? draft.stagedCount : 0}</TableCell>
                     <TableCell>{formatRelativeTime(integration.lastSynced)}</TableCell>
                     <TableCell>{integration.version}</TableCell>
                     <TableCell className="text-right">

@@ -17,8 +17,8 @@ export interface ReviewItem {
   externalValue?: string;
   reason: string;
   sourceMeta: string;
-  conflict: boolean;
-  selected: boolean;
+  requiresDecision: boolean;
+  staged: boolean;
   resolution: ReviewResolution;
 }
 
@@ -33,8 +33,8 @@ export interface ReviewBatch {
   items: ReviewItem[];
 }
 
-const conflictFieldSet = new Set(["user.email", "user.phone", "user.status", "door.status", "key.status"]);
-
+// TODO(bead .q5b.4): replace with backend-provided conflict_reason / base_value.
+const decisionRequiredFieldSet = new Set(["user.email", "user.phone", "user.status", "door.status", "key.status"]);
 export function cloneBatch(batch: ReviewBatch): ReviewBatch {
   return {
     ...batch,
@@ -69,8 +69,8 @@ function toFieldLabel(fieldName: string) {
 
 export function buildBatchFromApi(integrationId: IntegrationId, integration: Integration, changes: SyncChange[], applicationName: string): ReviewBatch {
   const items = changes.map((change, index) => {
-    const conflict = integration.slug === "hubspot"
-      ? conflictFieldSet.has(change.field_name)
+    const requiresDecision = integration.slug === "hubspot"
+      ? decisionRequiredFieldSet.has(change.field_name)
       : integration.slug === "salesforce"
         ? change.field_name === "user.email" || change.field_name === "user.phone"
         : false;
@@ -84,13 +84,13 @@ export function buildBatchFromApi(integrationId: IntegrationId, integration: Int
       recordLabel: inferRecordLabel(change, index),
       localValue: change.current_value,
       externalValue: change.new_value,
-      reason: conflict
-        ? "Detected as a conflict because both systems may have authoritative changes for this field."
-        : "This change can be previewed directly from the external payload.",
+      reason: requiresDecision
+        ? "This field may have changed on both sides. Choose which value to keep. (Heuristic — backend conflict_reason coming in bead .q5b.4.)"
+        : "This field changed in the incoming payload. Stage it to include in the next local apply.",
       sourceMeta: `${applicationName} • fetched ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
-      conflict,
-      selected: !conflict,
-      resolution: conflict ? ({} as ReviewResolution) : { kind: "external" },
+      requiresDecision,
+      staged: !requiresDecision,
+      resolution: requiresDecision ? ({} as ReviewResolution) : { kind: "external" },
     } satisfies ReviewItem;
   });
 
@@ -112,19 +112,19 @@ export function bumpVersion(version: string) {
   return `v${match[1]}.${match[2]}.${Number(match[3]) + 1}`;
 }
 
-export function selectedItems(items: ReviewItem[]) {
-  return items.filter((item) => item.selected);
+export function stagedItems(items: ReviewItem[]) {
+  return items.filter((item) => item.staged);
 }
 
-export function conflictItems(items: ReviewItem[]) {
-  return items.filter((item) => item.conflict);
+export function needsDecisionItems(items: ReviewItem[]) {
+  return items.filter((item) => item.requiresDecision);
 }
 
 export function applyStatusFromBatch(integration: Integration, batch: ReviewBatch): Integration {
-  const conflicts = conflictItems(batch.items).length;
+  const conflicts = needsDecisionItems(batch.items).length;
   return {
     ...integration,
-    status: conflicts > 0 ? "conflict" : "synced",
+    status: conflicts > 0 ? "conflict" : "synced", // kept for SyncStatus compat until bead .q5b.4
     lastSynced: conflicts > 0 ? integration.lastSynced : new Date(),
   };
 }
@@ -179,9 +179,9 @@ export interface DraftSession {
   proposedVersion: string;
   status: DraftStatus;
   items: ReviewItem[]; // mutable: operator may change selection and resolution
-  selectedCount: number;
-  conflictCount: number;
-  unresolvedCount: number;
+  stagedCount: number;
+  manualDecisionCount: number;
+  undecidedCount: number;
   applicationName: string;
   fetchedAt: string;
   lastError?: SyncFetchError;

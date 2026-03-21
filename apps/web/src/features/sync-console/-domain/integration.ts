@@ -45,7 +45,7 @@ export const integrationHealthSeed: Record<IntegrationId, IntegrationHealthMeta>
     nextScheduledSync: "Retry in 30 minutes",
   },
   "6": {
-    reliability: "Source healthy • last batch completed with no unresolved conflicts",
+    reliability: "Source healthy • last batch completed with no items needing a decision",
     sourceHealth: "healthy",
     auditRetention: "60 days",
     nextScheduledSync: "Today • 15:00",
@@ -98,9 +98,9 @@ export function buildIntegrationMetrics({
       hint: hasFetchError ? "Preview failed before a new batch could be generated." : "Selected fields waiting in the current review batch.",
     },
     {
-      label: "Unresolved conflicts",
+      label: "Needs decision",
       value: String(conflicts),
-      hint: conflicts > 0 ? "These fields need explicit operator direction before apply." : "No ambiguous fields in the current batch.",
+      hint: conflicts > 0 ? "These items require your decision before they can be staged and applied." : "No items need a decision in the current batch.",
     },
     {
       label: "Last sync duration",
@@ -116,6 +116,7 @@ export function buildIntegrationMetrics({
 }
 
 export function buildOverviewMetrics(integrations: Integration[]): ConsoleMetric[] {
+  // 'conflict' status is set by the client heuristic until bead .q5b.4 replaces it with backend-owned classification.
   const needingReview = integrations.filter((integration) => integration.status === "conflict").length;
   const degraded = integrations.filter((integration) => integration.status === "error").length;
   const syncing = integrations.filter((integration) => integration.status === "syncing").length;
@@ -129,5 +130,6 @@ export function buildOverviewMetrics(integrations: Integration[]): ConsoleMetric
 }
 
 export function getPriorityIntegrations(integrations: Integration[]) {
+  // conflict status is set by client heuristic; will be replaced by operator status in bead .q5b.4
   return integrations.filter((integration) => integration.status === "conflict" || integration.status === "error");
 }

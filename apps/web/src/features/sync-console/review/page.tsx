@@ -36,7 +36,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   const {
     updateReviewDecision,
     toggleReviewSelection,
-    approveSafeChanges,
+    stageReadyChanges,
     applyReview,
   } = useReviewActions();
 
@@ -84,27 +84,27 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   }
 
   const grouped = {
-    pending: draft.items.filter((item) => item.conflict && !item.resolution.kind),
-    resolved: draft.items.filter((item) => item.conflict && Boolean(item.resolution.kind)),
-    ready: draft.items.filter((item) => !item.conflict),
+    pending: draft.items.filter((item) => item.requiresDecision && !item.resolution.kind),
+    resolved: draft.items.filter((item) => item.requiresDecision && Boolean(item.resolution.kind)),
+    ready: draft.items.filter((item) => !item.requiresDecision),
   };
 
   const focusItem = draft.items.find((item) => item.id === focusedId) ?? draft.items[0];
 
   // Counts driving canApply and the apply button.
-  // Resolved conflicts + selected ready items are included.
-  const pendingConflicts = grouped.pending.length;
-  const resolvedConflicts = grouped.resolved.length;
-  const selectedReady = grouped.ready.filter((i) => i.selected).length;
-  const totalToApply = resolvedConflicts + selectedReady;
-  const canApply = draft.status !== 'stale' && totalToApply > 0 && pendingConflicts === 0;
+  // Decided items + directly staged items are included in totalStaged.
+  const undecidedItems = grouped.pending.length;
+  const decidedItems = grouped.resolved.length;
+  const directlyStaged = grouped.ready.filter((i) => i.staged).length;
+  const totalStaged = decidedItems + directlyStaged;
+  const canApply = draft.status !== 'stale' && totalStaged > 0 && undecidedItems === 0;
 
-  // Auto-save a resolution and advance focus to the next pending conflict.
+  // Auto-stage a decision and advance focus to the next undecided item.
   const handleAutoSave = React.useCallback(
     (resolution: import("../-domain/review").ReviewResolution) => {
       updateReviewDecision(integrationId, focusedId, resolution);
-      // Advance to next pending conflict (skip the item just resolved).
-      const next = draft.items.find((item) => item.id !== focusedId && item.conflict && !item.resolution.kind);
+      // Advance to next undecided item (skip the item just decided).
+      const next = draft.items.find((item) => item.id !== focusedId && item.requiresDecision && !item.resolution.kind);
       if (next) setFocusedId(next.id);
     },
     [integrationId, focusedId, draft.items, updateReviewDecision],
@@ -123,12 +123,12 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
       <PageShell
         eyebrow="Review queue"
         title={`${integration.name} change review`}
-        description="Resolve conflicts, approve safe updates, then commit."
+        description="Inspect changes, make decisions on flagged items, stage what to apply."
         actions={
           <>
             <Badge variant="outline">{draft.items.length} changes</Badge>
             <Badge variant={grouped.pending.length > 0 ? "destructive" : "secondary"}>
-              {grouped.pending.length} conflicts
+              {grouped.pending.length} need decision
             </Badge>
           </>
         }
@@ -161,16 +161,16 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
         <div className="grid gap-3 md:grid-cols-3">
           <ReviewStat icon={Layers2Icon} label="Total changes" value={String(draft.items.length)} />
           <ReviewStat icon={ShieldAlertIcon} label="Pending decisions" value={String(grouped.pending.length)} />
-          <ReviewStat icon={ShieldCheckIcon} label="Ready to apply" value={String(grouped.resolved.length + grouped.ready.filter(i => i.selected).length)} />
+          <ReviewStat icon={ShieldCheckIcon} label="Staged" value={String(grouped.resolved.length + grouped.ready.filter(i => i.staged).length)} />
         </div>
         <div className="grid gap-6 xl:grid-cols-[0.76fr_1.24fr]">
           {/* ── Left: change list ── */}
           <SurfaceSection
-            title="Change groups"
-            description="Resolve conflicts first, then approve safe updates."
+            title="Changes"
+            description="Items needing a decision must be resolved before they can be staged and applied."
             action={
-              <Badge variant={pendingConflicts > 0 ? "destructive" : "secondary"}>
-                {pendingConflicts > 0 ? `${pendingConflicts} unresolved` : `${totalToApply} ready`}
+              <Badge variant={undecidedItems > 0 ? "destructive" : "secondary"}>
+                {undecidedItems > 0 ? `${undecidedItems} undecided` : `${totalStaged} staged`}
               </Badge>
             }
           >
@@ -180,10 +180,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Conflicts needing decision</CardTitle>
+                      <CardTitle className="text-sm">Needs decision</CardTitle>
                       <Badge variant="destructive">{grouped.pending.length}</Badge>
                     </div>
-                    <CardDescription>Fields where the system cannot safely choose a winner automatically.</CardDescription>
+                    <CardDescription>These items are flagged as requiring your choice before they can be staged.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
                     {grouped.pending.map((item) => {
@@ -220,10 +220,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Resolved conflicts</CardTitle>
+                      <CardTitle className="text-sm">Decided</CardTitle>
                       <Badge variant="secondary">{grouped.resolved.length}</Badge>
                     </div>
-                    <CardDescription>Conflicts where you have chosen a resolution.</CardDescription>
+                    <CardDescription>You have made a decision on these items. They will be included when you apply.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
                     {grouped.resolved.map((item) => {
@@ -260,7 +260,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Ready to apply</CardTitle>
+                      <CardTitle className="text-sm">Staged</CardTitle>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary">{grouped.ready.length}</Badge>
                         {/* Bulk approval lives next to the group it controls */}
@@ -269,14 +269,14 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            approveSafeChanges(integrationId);
+                            stageReadyChanges(integrationId);
                           }}
                         >
-                          Approve all
+                          Stage all
                         </Button>
                       </div>
                     </div>
-                    <CardDescription>Low-risk changes that can still be inspected before applying.</CardDescription>
+                    <CardDescription>These changes are staged and ready to apply. Inspect them in the detail panel.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
                     {grouped.ready.map((item) => {
@@ -297,10 +297,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                             <div className="flex items-center gap-2">
                               {/* Checkbox for ready items — stop propagation so focus and select are independent */}
                               <Checkbox
-                                checked={item.selected}
+                                checked={item.staged}
                                 onCheckedChange={() => toggleReviewSelection(integrationId, item.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                aria-label={`${item.selected ? "Deselect" : "Select"} ${item.fieldLabel}`}
+                                aria-label={`${item.staged ? "Deselect" : "Select"} ${item.fieldLabel}`}
                               />
                               <Icon className={`size-4 shrink-0 ${color}`} aria-label={label} />
                               <span className="font-medium">{item.recordLabel}</span>
@@ -323,7 +323,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
               <SurfaceSection
                 title="Field comparison"
                 description="Inspect both values side by side before choosing a resolution."
-                action={<Badge variant={focusItem.conflict ? "destructive" : "secondary"}>{focusItem.changeType}</Badge>}
+                action={<Badge variant={focusItem.requiresDecision ? "destructive" : "secondary"}>{focusItem.changeType}</Badge>}
               >
                 <div className="grid gap-4">
                   <div className="grid gap-3 md:grid-cols-3">
@@ -337,7 +337,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                       description="The value currently stored in Portier."
                       value={focusItem.localValue ?? ""}
                       otherValue={focusItem.externalValue ?? ""}
-                      highlightColor={focusItem.conflict ? "red" : undefined}
+                      highlightColor={focusItem.requiresDecision ? "red" : undefined}
                     />
                     <ValuePanel
                     
@@ -345,12 +345,12 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                       description="The value coming from the external provider."
                       value={focusItem.externalValue ?? ""}
                       otherValue={focusItem.localValue ?? ""}
-                      highlightColor={focusItem.conflict ? "green" : undefined}
+                      highlightColor={focusItem.requiresDecision ? "green" : undefined}
                     />
                   </div>
                   <Card size="sm" className="border border-border/70 bg-muted/20">
                     <CardHeader>
-                      <CardTitle className="text-sm">Why this needs attention</CardTitle>
+                      <CardTitle className="text-sm">About this change</CardTitle>
                       <CardDescription>{focusItem.reason}</CardDescription>
                     </CardHeader>
                   </Card>
@@ -359,10 +359,10 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
 
               <SurfaceSection
                 title="Resolution"
-                description="Choose how this field should be resolved."
+                description="Choose which value to keep, then the item will be staged automatically."
                 action={
-                  <Badge variant={focusItem.conflict && !focusItem.resolution.kind ? "destructive" : "outline"}>
-                    {focusItem.conflict && !focusItem.resolution.kind
+                  <Badge variant={focusItem.requiresDecision && !focusItem.resolution.kind ? "destructive" : "outline"}>
+                    {focusItem.requiresDecision && !focusItem.resolution.kind
                       ? "Needs decision"
                       : focusItem.resolution.kind === "local"
                         ? "Keep current"
@@ -370,7 +370,8 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                           ? "Accept incoming"
                           : focusItem.resolution.kind === "merged"
                             ? "Custom value"
-                            : "Approved"}
+                            : "Staged"
+                    }
                   </Badge>
                 }
               >
@@ -398,9 +399,9 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                     </TooltipTrigger>
                     {!canApply && (
                       <TooltipContent>
-                        {pendingConflicts > 0
-                          ? `Resolve ${pendingConflicts} conflict${pendingConflicts !== 1 ? "s" : ""} before applying`
-                          : "Select at least one change to apply"}
+                        {undecidedItems > 0
+                          ? `Decide ${undecidedItems} item${undecidedItems !== 1 ? "s" : ""} before applying`
+                          : "Stage at least one change to apply"}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -417,16 +418,16 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
             <AlertDialogTitle>Apply locally</AlertDialogTitle>
             <AlertDialogDescription>
               You are about to apply locally{" "}
-              <span className="font-medium text-foreground">{totalToApply} change{totalToApply !== 1 ? "s" : ""}</span>
-              {resolvedConflicts > 0 && selectedReady > 0 && (
-                <> — {resolvedConflicts} resolved conflict{resolvedConflicts !== 1 ? "s" : ""} and{" "}
-                  {selectedReady} ready to apply{selectedReady !== 1 ? "s" : ""}</>
+              <span className="font-medium text-foreground">{totalStaged} change{totalStaged !== 1 ? "s" : ""}</span>
+              {decidedItems > 0 && directlyStaged > 0 && (
+                <> — {decidedItems} decided item{decidedItems !== 1 ? "s" : ""} and{" "}
+                  {directlyStaged} directly staged{directlyStaged !== 1 ? "s" : ""}</>
               )}
-              {resolvedConflicts > 0 && selectedReady === 0 && (
-                <> — {resolvedConflicts} resolved conflict{resolvedConflicts !== 1 ? "s" : ""}</>
+              {decidedItems > 0 && directlyStaged === 0 && (
+                <> — {decidedItems} decided item{decidedItems !== 1 ? "s" : ""}</>
               )}
-              {resolvedConflicts === 0 && selectedReady > 0 && (
-                <> — {selectedReady} ready to apply{selectedReady !== 1 ? "s" : ""}</>
+              {decidedItems === 0 && directlyStaged > 0 && (
+                <> — {directlyStaged} directly staged{directlyStaged !== 1 ? "s" : ""}</>
               )}
               {" "}<span className="font-medium text-foreground">This writes to your local database only</span> and does not affect the remote system.
             </AlertDialogDescription>
