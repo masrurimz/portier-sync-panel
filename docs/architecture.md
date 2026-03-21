@@ -122,3 +122,39 @@ This maps directly to standard three-way merge semantics. Any resolution model w
 ### Why MSW instead of a fake backend
 
 A fake Node server would need to be started separately, would not be intercepting the same fetch calls the real API uses, and would introduce a second process into the reviewer's setup. MSW runs in the browser service worker layer: the same `fetch()` call that hits the real API in production is intercepted in the browser in development. The real-vs-mocked boundary is a single boolean (`VITE_MOCK_API`) and it is visible in code, not in a `.env` comment. See `docs/runtime-modes.md` for the full boundary table.
+
+### Why TanStack Query over the alternatives
+
+The sync console has three separate page-level consumers of the same integration data: the overview list, the detail page, and the review page. Without a shared cache, each would either refetch independently (three round-trips for the same data) or require a global store with manual staleness tracking. TanStack Query's cache is keyed by `queryKey` — all three consumers share the same in-flight request and the same cached result. Invalidating `integrationsKeys.detail('2')` propagates to every subscriber automatically.
+
+`useSuspenseQuery` moves loading and error state out of component render logic entirely. Components declare what data they need; the Suspense boundary handles the loading/error boundary. Without this, every component would have an `if (isLoading)` / `if (isError)` branch duplicated across the feature.
+
+Why not **orpc/ts-rest**: These are server-first frameworks — they generate a typed client from a server-side router. In this project the backend is owned by Portier; we only have an HTTP spec. There is no server to couple to. orpc/ts-rest would add framework coupling where we need outside-in contract modeling.
+
+Why not **SWR**: SWR lacks the query factory / key hierarchy model. Invalidating a specific integration's detail without knowing which components subscribe to it requires either a key registry or a cache-clearing strategy that scales poorly. TanStack Query's hierarchical keys (`integrationsKeys.detail(id)`, `integrationsKeys.all`) make targeted invalidation structural, not accidental.
+
+Why not **plain better-fetch + useState**: No shared cache. Each component fetches independently, staleness is managed manually, and there is no standard invalidation path between pages.
+
+### Why better-fetch as the HTTP adapter
+
+Native `fetch` has no response schema validation. A request that returns a 200 with a malformed body is indistinguishable from a valid success response until a component tries to read a field that does not exist. `better-fetch` with `createSchema` validates the response against the Zod schema before returning it to any caller. A schema mismatch surfaces at the API boundary, not inside a component.
+
+Why not **orpc/ts-rest**: Same reason as above — server-first frameworks require a shared server router. `better-fetch`'s `createSchema` wraps an external HTTP spec from the outside, with no server-side dependency. This is the correct model for a project where the backend is external.
+
+Why not **native fetch with manual Zod parsing**: Possible, but `better-fetch` handles the boilerplate (baseURL, default headers, error response normalization) and integrates `defaultError` for typed error inference. Rolling this manually produces the same result with more surface area.
+
+The `throw: true` configuration makes failed responses throw `ApiError` (`BetterFetchError`). TanStack Query's error boundary model depends on thrown promises — a fetch that returns `{ ok: false, data: null }` without throwing would be invisible to TanStack Query's error state.
+
+The better-fetch + TanStack Query split is a deliberate decomposition: better-fetch owns transport and schema validation; TanStack Query owns caching and lifecycle. Each does one job. A monolithic client (e.g., an orpc client) would collapse these responsibilities and make them harder to reason about or replace independently.
+
+### Why seed data lives in the MSW handler layer
+
+The choice to place seed data in `packages/api/src/msw/data/` rather than in Zustand initial state or component defaults is as deliberate as the choice to use MSW at all.
+
+The web app has **zero awareness** of the seed data. `OverviewPage` calls `integrationsListQueryOptions()` and gets integrations back. It does not know whether the response came from `portier-takehometest.onrender.com` or from MSW's in-memory store. This is the definition of a correct API seam: a real API is a true drop-in replacement.
+
+Seeding in Zustand would mix application state with test data in the same namespace. Application state and seed data have different owners (the operator's session vs. a developer's fixture) and different lifetimes. Keeping them in the same store makes it structurally impossible to tell which mutations come from the operator and which came from initialization.
+
+Seeding as component defaults or inline constants would bypass the API contract entirely — no Zod schema validation, no `ApiSuccessResponseSchema` envelope, no real-vs-mock swap. The component would be testing static data, not the system's response to an API call.
+
+HubSpot starting in `conflict` status is a **domain-level fact**, not a UI stub. Because it is seeded at the data layer, the entire system reacts to it truthfully: the priority queue appears on the overview, the badge count is computed from live query data, and the review flow is exercisable through the real `syncNow()` → `updateReviewDecision()` → `applyReview()` path. If this were a UI-level stub, you would be exercising the stub, not the system.
