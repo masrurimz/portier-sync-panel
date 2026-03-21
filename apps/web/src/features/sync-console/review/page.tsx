@@ -104,7 +104,6 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   );
 
   const handleConfirmApply = async () => {
-    setShowConfirm(false);
     const applied = await applyReview(integrationId, queryClient);
     if (applied) {
       void navigate({ to: "/integration/$integrationId/history", params: { integrationId } });
@@ -325,16 +324,16 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
 
                 <div className="flex flex-wrap justify-end gap-2">
                   <Tooltip>
-                    <TooltipTrigger>
-                      {/* span needed so Tooltip can attach to a disabled button */}
-                      <span tabIndex={canApply ? undefined : 0} className="inline-block">
-                        <Button
-                          onClick={() => setShowConfirm(true)}
-                          disabled={!canApply}
-                        >
-Apply decisions
-                        </Button>
-                      </span>
+                    <TooltipTrigger
+                      render={<span className="inline-block" />}
+                      tabIndex={canApply ? undefined : 0}
+                    >
+                      <Button
+                        onClick={() => setShowConfirm(true)}
+                        disabled={!canApply}
+                      >
+                        Apply decisions
+                      </Button>
                     </TooltipTrigger>
                     {!canApply && (
                       <TooltipContent>
