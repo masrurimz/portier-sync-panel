@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 
-import { integrationsListQueryOptions } from "@portier-sync/api";
+import { integrationsListQueryOptions, type Integration, type IntegrationOperatorStatus } from "@portier-sync/api";
 
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Input } from "@portier-sync/ui/components/input";
@@ -16,13 +16,37 @@ import {
 } from "@portier-sync/ui/components/table";
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
-import { LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection, DataPoint } from "../-ui/ui";
+import { LinkButton, MetricGrid, OperatorStatusBadge, PageShell, SurfaceSection, DataPoint } from "../-ui/ui";
 import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../-domain/integration";
+import type { DraftSession } from "../-domain/review";
+import { useReviewStore } from "../-state/review-store";
 
+
+function getOperatorStatus(
+  integration: { status: Integration["status"] },
+  draft: DraftSession | undefined,
+): IntegrationOperatorStatus {
+  if (!draft || draft.status === "idle") {
+    return integration.status === "error" ? "remote-unavailable" : "up-to-date";
+  }
+  if (draft.status === "failed") {
+    return integration.status === "error" ? "remote-unavailable" : "up-to-date";
+  }
+  if (draft.status === "stale") return "stale-draft";
+  if (draft.status === "applying") return "applying-locally";
+  if (draft.status === "applied") return "applied-locally";
+  if (draft.status === "fetching") return "up-to-date"; // transient; spinner shown elsewhere
+  if (draft.status === "ready") {
+    return draft.unresolvedCount > 0 ? "conflicts-need-review" : "preview-ready";
+  }
+  return "up-to-date";
+}
 export function OverviewPage() {
   const { data: integrations } = useSuspenseQuery(integrationsListQueryOptions());
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "synced" | "syncing" | "conflict" | "error">("all");
+
+  const draftSessions = useReviewStore((state) => state.draftSessions);
 
   const filteredIntegrations = integrations.filter((integration) => {
     const matchesSearch = integration.name.toLowerCase().includes(search.toLowerCase());
@@ -64,28 +88,29 @@ export function OverviewPage() {
                           : "Provider health is degraded. Local data is unchanged."}
                       </p>
                     </div>
-                    <StatusBadge status={integration.status} />
+                    <OperatorStatusBadge status={getOperatorStatus(integration, draftSessions[integration.id])} />
                   </div>
                   <div className="grid gap-2 md:grid-cols-3">
-                    {/* TODO: Wire pending review count from API when available */}
-                    <DataPoint label="Pending review" value="0 fields" />
+                    <DataPoint label="Pending review" value={`${draftSessions[integration.id]?.selectedCount ?? 0} fields`} />
                     <DataPoint label="Last sync" value={formatRelativeTime(integration.lastSynced)} />
                     <DataPoint label="Version" value={integration.version} />
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">
-                      Manage
-                    </LinkButton>
-                    {integration.status === "conflict" ? (
-                      <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }}>
-                        Review updates
-                      </LinkButton>
-                    ) : (
-                      <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">
-                        View history
-                      </LinkButton>
-                    )}
-                  </div>
+                  {(() => {
+                    const opStatus = getOperatorStatus(integration, draftSessions[integration.id]);
+                    if (opStatus === "preview-ready" || opStatus === "conflicts-need-review") {
+                      return <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }}>Continue review</LinkButton>;
+                    }
+                    if (opStatus === "stale-draft") {
+                      return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">Refresh draft</LinkButton>;
+                    }
+                    if (opStatus === "applied-locally") {
+                      return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
+                    }
+                    if (opStatus === "remote-unavailable") {
+                      return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
+                    }
+                    return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }}>Fetch latest</LinkButton>;
+                  })()}
                 </div>
               </div>
             ))}
@@ -136,45 +161,43 @@ export function OverviewPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredIntegrations.map((integration) => (
-              <TableRow key={integration.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <span aria-hidden="true" className="text-lg">{integration.icon}</span>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-medium">{integration.name}</span>
-                      <span className="text-muted-foreground">{integration.totalRecords?.toLocaleString("en-US")} modeled records</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={integration.status} />
-                </TableCell>
-                {/* TODO: Wire pending review count from API when available */}
-                <TableCell>0</TableCell>
-                <TableCell>{formatRelativeTime(integration.lastSynced)}</TableCell>
-                <TableCell>{integration.version}</TableCell>
-                <TableCell className="text-right">
-                  {integration.status === "conflict" ? (
-                    <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }} variant="default">
-                      Review updates
-                    </LinkButton>
-                  ) : integration.status === "error" ? (
-                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="secondary">
-                      View logs
-                    </LinkButton>
-                  ) : integration.status === "syncing" ? (
-                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost" className="pointer-events-none opacity-50">
-                      Syncing…
-                    </LinkButton>
-                  ) : (
-                    <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">
-                      Manage
-                    </LinkButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredIntegrations.map((integration) => {
+                const draft = draftSessions[integration.id];
+                const opStatus = getOperatorStatus(integration, draft);
+                return (
+                  <TableRow key={integration.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <span aria-hidden="true" className="text-lg">{integration.icon}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium">{integration.name}</span>
+                          <span className="text-muted-foreground">{integration.totalRecords?.toLocaleString("en-US")} modeled records</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <OperatorStatusBadge status={opStatus} />
+                    </TableCell>
+                    <TableCell>{draft ? draft.selectedCount : 0}</TableCell>
+                    <TableCell>{formatRelativeTime(integration.lastSynced)}</TableCell>
+                    <TableCell>{integration.version}</TableCell>
+                    <TableCell className="text-right">
+                      {(() => {
+                        if (opStatus === "preview-ready" || opStatus === "conflicts-need-review") {
+                          return <LinkButton to="/integration/$integrationId/review" params={{ integrationId: integration.id }} variant="default">Continue review</LinkButton>;
+                        }
+                        if (opStatus === "stale-draft") {
+                          return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="outline">Refresh draft</LinkButton>;
+                        }
+                        if (opStatus === "applied-locally") {
+                          return <LinkButton to="/integration/$integrationId/history" params={{ integrationId: integration.id }} variant="ghost">View history</LinkButton>;
+                        }
+                        return <LinkButton to="/integration/$integrationId" params={{ integrationId: integration.id }} variant="ghost">Manage</LinkButton>;
+                      })()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
           </TableBody>
         </Table>
       </SurfaceSection>

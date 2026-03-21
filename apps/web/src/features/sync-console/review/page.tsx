@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@portier-sync/ui/components/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Button } from "@portier-sync/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
@@ -31,7 +32,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   const queryClient = useQueryClient();
   const { data: integrations = [] } = useQuery(integrationsListQueryOptions());
   const integration = integrations.find((item) => item.id === integrationId);
-  const batch = useReviewBatch(integrationId);
+  const draft = useReviewBatch(integrationId);
   const {
     updateReviewDecision,
     toggleReviewSelection,
@@ -39,13 +40,13 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
     applyReview,
   } = useReviewActions();
 
-  const [focusedId, setFocusedId] = React.useState(batch?.items[0]?.id ?? "");
+  const [focusedId, setFocusedId] = React.useState(draft?.items[0]?.id ?? "");
   const [showConfirm, setShowConfirm] = React.useState(false);
 
-  // Reset focus to first item when the batch changes (e.g. after a fresh sync).
+  // Reset focus to first item when the draft changes (e.g. after a fresh sync).
   React.useEffect(() => {
-    setFocusedId(batch?.items[0]?.id ?? "");
-  }, [batch?.items]);
+    setFocusedId(draft?.items[0]?.id ?? "");
+  }, [draft?.items]);
 
   // Guard: integration not yet hydrated in session state
   if (!integration) {
@@ -62,8 +63,8 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
     );
   }
 
-  // Guard: no preview batch available
-  if (!batch) {
+  // Guard: no preview draft available
+  if (!draft) {
     return (
       <PageShell
         eyebrow="Review queue"
@@ -83,29 +84,30 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
   }
 
   const grouped = {
-    safe: batch.items.filter((item) => !item.conflict),
-    conflicts: batch.items.filter((item) => item.conflict),
+    pending: draft.items.filter((item) => item.conflict && !item.resolution.kind),
+    resolved: draft.items.filter((item) => item.conflict && Boolean(item.resolution.kind)),
+    ready: draft.items.filter((item) => !item.conflict),
   };
 
-  const focusItem = batch.items.find((item) => item.id === focusedId) ?? batch.items[0];
+  const focusItem = draft.items.find((item) => item.id === focusedId) ?? draft.items[0];
 
-  // Counts driving canApply and the commit button label.
-  // Conflicts are included when resolved; safe items when selected.
-  const resolvedConflicts = grouped.conflicts.filter((i) => i.resolution.kind).length;
-  const selectedSafe = grouped.safe.filter((i) => i.selected).length;
-  const unresolvedConflicts = grouped.conflicts.filter((i) => !i.resolution.kind).length;
-  const totalToApply = resolvedConflicts + selectedSafe;
-  const canApply = totalToApply > 0 && unresolvedConflicts === 0;
+  // Counts driving canApply and the apply button.
+  // Resolved conflicts + selected ready items are included.
+  const pendingConflicts = grouped.pending.length;
+  const resolvedConflicts = grouped.resolved.length;
+  const selectedReady = grouped.ready.filter((i) => i.selected).length;
+  const totalToApply = resolvedConflicts + selectedReady;
+  const canApply = draft.status !== 'stale' && totalToApply > 0 && pendingConflicts === 0;
 
-  // Auto-save a resolution and advance focus to the next unresolved conflict.
+  // Auto-save a resolution and advance focus to the next pending conflict.
   const handleAutoSave = React.useCallback(
     (resolution: import("../-domain/review").ReviewResolution) => {
       updateReviewDecision(integrationId, focusedId, resolution);
-      // Advance to next unresolved conflict (skip the item just resolved).
-      const next = batch.items.find((item) => item.id !== focusedId && item.conflict && !item.resolution.kind);
+      // Advance to next pending conflict (skip the item just resolved).
+      const next = draft.items.find((item) => item.id !== focusedId && item.conflict && !item.resolution.kind);
       if (next) setFocusedId(next.id);
     },
-    [integrationId, focusedId, batch.items, updateReviewDecision],
+    [integrationId, focusedId, draft.items, updateReviewDecision],
   );
 
   const handleConfirmApply = async () => {
@@ -124,44 +126,67 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
         description="Resolve conflicts, approve safe updates, then commit."
         actions={
           <>
-            <Badge variant="outline">{batch.items.length} changes</Badge>
-            <Badge variant={grouped.conflicts.length > 0 ? "destructive" : "secondary"}>
-              {grouped.conflicts.length} conflicts
+            <Badge variant="outline">{draft.items.length} changes</Badge>
+            <Badge variant={grouped.pending.length > 0 ? "destructive" : "secondary"}>
+              {grouped.pending.length} conflicts
             </Badge>
           </>
         }
       >
+        {/* Context banner */}
+        {draft && (
+          <div className="rounded-2xl border border-border/70 bg-muted/20 px-5 py-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-muted-foreground">
+              <span><span className="font-medium text-foreground">{draft.applicationName}</span> — remote preview</span>
+              <span>Base version: <span className="font-mono">{draft.baseVersion}</span></span>
+              <span>Proposed: <span className="font-mono">{draft.proposedVersion}</span></span>
+              <span>Fetched {new Date(draft.fetchedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Stale draft guard */}
+        {draft.status === 'stale' && (
+          <Alert variant="destructive">
+            <ShieldAlertIcon />
+            <AlertTitle>Draft is out of date</AlertTitle>
+            <AlertDescription>
+              Another change updated the local database after this preview was fetched.
+              Return to detail and run Fetch latest to create a fresh comparison.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Summary stats */}
         <div className="grid gap-3 md:grid-cols-3">
-          <ReviewStat icon={Layers2Icon} label="Total changes" value={String(batch.items.length)} />
-          <ReviewStat icon={ShieldCheckIcon} label="Safe updates" value={String(grouped.safe.length)} />
-          <ReviewStat icon={ShieldAlertIcon} label="Conflicts" value={String(grouped.conflicts.length)} />
+          <ReviewStat icon={Layers2Icon} label="Total changes" value={String(draft.items.length)} />
+          <ReviewStat icon={ShieldAlertIcon} label="Pending decisions" value={String(grouped.pending.length)} />
+          <ReviewStat icon={ShieldCheckIcon} label="Ready to apply" value={String(grouped.resolved.length + grouped.ready.filter(i => i.selected).length)} />
         </div>
-
         <div className="grid gap-6 xl:grid-cols-[0.76fr_1.24fr]">
           {/* ── Left: change list ── */}
           <SurfaceSection
             title="Change groups"
             description="Resolve conflicts first, then approve safe updates."
             action={
-              <Badge variant={unresolvedConflicts > 0 ? "destructive" : "secondary"}>
-                {unresolvedConflicts > 0 ? `${unresolvedConflicts} unresolved` : `${totalToApply} ready`}
+              <Badge variant={pendingConflicts > 0 ? "destructive" : "secondary"}>
+                {pendingConflicts > 0 ? `${pendingConflicts} unresolved` : `${totalToApply} ready`}
               </Badge>
             }
           >
             <div className="grid gap-3">
-              {/* Conflicts group */}
-              {grouped.conflicts.length > 0 && (
+              {/* Conflicts needing decision group */}
+              {grouped.pending.length > 0 && (
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Conflicts</CardTitle>
-                      <Badge variant="destructive">{grouped.conflicts.length}</Badge>
+                      <CardTitle className="text-sm">Conflicts needing decision</CardTitle>
+                      <Badge variant="destructive">{grouped.pending.length}</Badge>
                     </div>
                     <CardDescription>Fields where the system cannot safely choose a winner automatically.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
-                    {grouped.conflicts.map((item) => {
+                    {grouped.pending.map((item) => {
                       const { Icon, color, label } = getItemIndicator(item);
                       return (
                         <button
@@ -190,31 +215,18 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                 </Card>
               )}
 
-              {/* Safe updates group */}
-              {grouped.safe.length > 0 && (
+              {/* Resolved conflicts group */}
+              {grouped.resolved.length > 0 && (
                 <Card size="sm" className="border border-border/70 bg-background/40">
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
-                      <CardTitle className="text-sm">Safe updates</CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{grouped.safe.length}</Badge>
-                        {/* Bulk approval lives next to the group it controls */}
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            approveSafeChanges(integrationId);
-                          }}
-                        >
-                          Approve all
-                        </Button>
-                      </div>
+                      <CardTitle className="text-sm">Resolved conflicts</CardTitle>
+                      <Badge variant="secondary">{grouped.resolved.length}</Badge>
                     </div>
-                    <CardDescription>Low-risk changes that can still be inspected before committing.</CardDescription>
+                    <CardDescription>Conflicts where you have chosen a resolution.</CardDescription>
                   </CardHeader>
                   <CardContent className="flex flex-col gap-2">
-                    {grouped.safe.map((item) => {
+                    {grouped.resolved.map((item) => {
                       const { Icon, color, label } = getItemIndicator(item);
                       return (
                         <button
@@ -230,7 +242,60 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                         >
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2">
-                              {/* Checkbox for safe items — stop propagation so focus and select are independent */}
+                              <Icon className={`size-4 shrink-0 ${color}`} aria-label={label} />
+                              <span className="font-medium">{item.recordLabel}</span>
+                            </div>
+                            <Badge variant="outline">{item.entityLabel}</Badge>
+                          </div>
+                          <span className="text-muted-foreground">{item.fieldLabel}</span>
+                        </button>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ready to apply group */}
+              {grouped.ready.length > 0 && (
+                <Card size="sm" className="border border-border/70 bg-background/40">
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                      <CardTitle className="text-sm">Ready to apply</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{grouped.ready.length}</Badge>
+                        {/* Bulk approval lives next to the group it controls */}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approveSafeChanges(integrationId);
+                          }}
+                        >
+                          Approve all
+                        </Button>
+                      </div>
+                    </div>
+                    <CardDescription>Low-risk changes that can still be inspected before applying.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-2">
+                    {grouped.ready.map((item) => {
+                      const { Icon, color, label } = getItemIndicator(item);
+                      return (
+                        <button
+                          key={item.id}
+                          className={`flex flex-col gap-2 rounded-2xl border p-3 text-left transition-colors ${
+                            focusItem?.id === item.id
+                              ? "border-primary/45 bg-primary/8"
+                              : "border-border/70 bg-background/30 hover:bg-accent/30"
+                          }`}
+                          onClick={() => setFocusedId(item.id)}
+                          type="button"
+                          aria-label={`${item.fieldLabel} — ${label}`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              {/* Checkbox for ready items — stop propagation so focus and select are independent */}
                               <Checkbox
                                 checked={item.selected}
                                 onCheckedChange={() => toggleReviewSelection(integrationId, item.id)}
@@ -275,7 +340,8 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                       highlightColor={focusItem.conflict ? "red" : undefined}
                     />
                     <ValuePanel
-                      title={`${batch.applicationName} (incoming)`}
+                    
+                      title={`${draft.applicationName} (incoming)`}
                       description="The value coming from the external provider."
                       value={focusItem.externalValue ?? ""}
                       otherValue={focusItem.localValue ?? ""}
@@ -299,9 +365,9 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                     {focusItem.conflict && !focusItem.resolution.kind
                       ? "Needs decision"
                       : focusItem.resolution.kind === "local"
-                        ? "Keep Portier Value"
+                        ? "Keep local"
                         : focusItem.resolution.kind === "external"
-                          ? `Use ${batch.applicationName} Value`
+                          ? "Accept remote"
                           : focusItem.resolution.kind === "merged"
                             ? "Custom value"
                             : "Approved"}
@@ -310,7 +376,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
               >
                 <ReviewResolutionForm
                   item={focusItem}
-                  applicationName={batch.applicationName}
+                  applicationName={draft.applicationName}
                   onAutoSave={handleAutoSave}
                   onSubmit={(resolution) => updateReviewDecision(integrationId, focusItem.id, resolution)}
                 />
@@ -326,15 +392,15 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                           onClick={() => setShowConfirm(true)}
                           disabled={!canApply}
                         >
-                          Commit {totalToApply} update{totalToApply !== 1 ? "s" : ""}
+                          Apply locally
                         </Button>
                       </span>
                     </TooltipTrigger>
                     {!canApply && (
                       <TooltipContent>
-                        {unresolvedConflicts > 0
-                          ? `Resolve ${unresolvedConflicts} conflict${unresolvedConflicts !== 1 ? "s" : ""} before committing`
-                          : "Select at least one change to commit"}
+                        {pendingConflicts > 0
+                          ? `Resolve ${pendingConflicts} conflict${pendingConflicts !== 1 ? "s" : ""} before applying`
+                          : "Select at least one change to apply"}
                       </TooltipContent>
                     )}
                   </Tooltip>
@@ -348,26 +414,26 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Commit changes</AlertDialogTitle>
+            <AlertDialogTitle>Apply locally</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to apply{" "}
+              You are about to apply locally{" "}
               <span className="font-medium text-foreground">{totalToApply} change{totalToApply !== 1 ? "s" : ""}</span>
-              {resolvedConflicts > 0 && selectedSafe > 0 && (
+              {resolvedConflicts > 0 && selectedReady > 0 && (
                 <> — {resolvedConflicts} resolved conflict{resolvedConflicts !== 1 ? "s" : ""} and{" "}
-                  {selectedSafe} safe update{selectedSafe !== 1 ? "s" : ""}</>
+                  {selectedReady} ready to apply{selectedReady !== 1 ? "s" : ""}</>
               )}
-              {resolvedConflicts > 0 && selectedSafe === 0 && (
+              {resolvedConflicts > 0 && selectedReady === 0 && (
                 <> — {resolvedConflicts} resolved conflict{resolvedConflicts !== 1 ? "s" : ""}</>
               )}
-              {resolvedConflicts === 0 && selectedSafe > 0 && (
-                <> — {selectedSafe} safe update{selectedSafe !== 1 ? "s" : ""}</>
+              {resolvedConflicts === 0 && selectedReady > 0 && (
+                <> — {selectedReady} ready to apply{selectedReady !== 1 ? "s" : ""}</>
               )}
-              {" "}. <span className="font-medium text-foreground">This cannot be undone.</span>
+              {" "}<span className="font-medium text-foreground">This writes to your local database only</span> and does not affect the remote system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmApply}>Commit changes</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmApply}>Confirm—apply locally</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

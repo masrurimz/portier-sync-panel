@@ -4,9 +4,16 @@ import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components
 import { Badge } from "@portier-sync/ui/components/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { Separator } from "@portier-sync/ui/components/separator";
-import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
+import { HistoryIcon } from "lucide-react";
 
-import { integrationsListQueryOptions, historyListQueryOptions, type IntegrationId } from "@portier-sync/api";
+import {
+  integrationsListQueryOptions,
+  historyListQueryOptions,
+  getLocalHistory,
+  type IntegrationId,
+  type AuditEntry,
+} from "@portier-sync/api";
+import { remoteHistoryToAuditEntry } from "../-domain/history";
 import { DataPoint, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function HistoryPage({ integrationId }: { integrationId: IntegrationId }) {
@@ -16,11 +23,23 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
   // Query remote history
   const { data: history = [] } = useQuery(historyListQueryOptions({ input: { id: integrationId } }));
 
-  const [selectedId, setSelectedId] = React.useState(history[0]?.id ?? "");
+  // Query local history
+  const { data: localEntries = [] } = useQuery({
+    queryKey: ["local", "history", integrationId],
+    queryFn: () => getLocalHistory(integrationId),
+  });
+
+  // Normalize remote entries and merge with local entries
+  const remoteAuditEntries: AuditEntry[] = history.map(remoteHistoryToAuditEntry);
+  const timeline: AuditEntry[] = [...remoteAuditEntries, ...localEntries].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  const [selectedId, setSelectedId] = React.useState(timeline[0]?.id ?? "");
 
   React.useEffect(() => {
-    setSelectedId(history[0]?.id ?? "");
-  }, [history]);
+    setSelectedId(timeline[0]?.id ?? "");
+  }, [timeline]);
 
   // Guard: integration not yet hydrated in query state
   if (!integration) {
@@ -37,14 +56,14 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
     );
   }
 
-  const selectedEntry = history.find((entry) => entry.id === selectedId) ?? history[0];
+  const selectedEntry = timeline.find((entry) => entry.id === selectedId) ?? timeline[0];
 
   return (
     <PageShell
       eyebrow="History and audit"
       title={`${integration.name} version history`}
       description="Inspect past sync events and audit details, then jump back into review when needed."
-      actions={<Badge variant="outline">{history.length} events</Badge>}
+      actions={<Badge variant="outline">{timeline.length} events</Badge>}
     >
       <Alert>
         <HistoryIcon />
@@ -54,7 +73,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
         </AlertDescription>
       </Alert>
 
-      {history.length === 0 ? (
+      {timeline.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border/80 bg-background/30 p-6 text-sm text-muted-foreground">
           No history entries are available yet. History will appear here after sync operations are completed.
         </div>
@@ -66,9 +85,10 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
             action={<Badge variant="outline">Audit-first layout</Badge>}
           >
             <div className="flex flex-col gap-3">
-              {history.map((entry) => {
-                // TODO: replace with a structured outcome field
+              {timeline.map((entry) => {
                 const flagged = entry.summary.toLowerCase().includes("error") || entry.summary.toLowerCase().includes("paused");
+                const versionDisplay = entry.resultVersion ?? entry.remoteVersion ?? "—";
+                const sourceLabel = entry.origin === "local" ? "Applied locally" : entry.eventType === "remote-history" ? "Remote system" : "Preview";
                 return (
                   <button
                     key={entry.id}
@@ -82,7 +102,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                       <div className="flex flex-col gap-1">
                         <h3 className="text-sm font-semibold">{entry.summary}</h3>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          {entry.timestamp.toLocaleString("en-US", {
+                          {new Date(entry.timestamp).toLocaleString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -90,29 +110,16 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                             minute: "2-digit",
                           })}
                           {" • "}
-                          {entry.source === "user" ? (
-                            <>
-                              <UserIcon className="inline size-3 mr-1 text-muted-foreground" />
-                              Operator
-                            </>
-                          ) : (
-                            <>
-                              <BotIcon className="inline size-3 mr-1 text-muted-foreground" />
-                              Scheduled
-                            </>
-                          )}
+                          {sourceLabel}
                         </p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">{entry.version}</Badge>
+                        <Badge variant={entry.origin === "local" ? "outline" : "secondary"} className={entry.origin === "local" ? "border-emerald-500/50 text-emerald-600 bg-emerald-500/8" : ""}>
+                          {entry.origin === "local" ? "Local" : "Remote"}
+                        </Badge>
+                        <Badge variant="secondary">{versionDisplay}</Badge>
                         <Badge variant={flagged ? "destructive" : "outline"}>{flagged ? "Requires attention" : "Completed"}</Badge>
                       </div>
-                    </div>
-                    <div className="mt-4 grid gap-2 md:grid-cols-4">
-                      <DataPoint label="Changed fields" value={String(entry.changesCount ?? 0)} />
-                      <DataPoint label="Added" value={String(entry.addedCount ?? 0)} />
-                      <DataPoint label="Updated" value={String(entry.updatedCount ?? 0)} />
-                      <DataPoint label="Deleted" value={String(entry.deletedCount ?? 0)} />
                     </div>
                   </button>
                 );
@@ -125,12 +132,13 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
               <SurfaceSection
                 title="Expanded event view"
                 description="Details for the selected event."
-                action={<Badge variant="outline">{selectedEntry.version}</Badge>}
+                action={<Badge variant="outline">{selectedEntry.resultVersion ?? "—"}</Badge>}
               >
                 <div className="grid gap-3">
-                  <DataPoint label="Trigger" value={selectedEntry.source === "user" ? "Manual review" : "Scheduled sync"} />
+                  <DataPoint label="Trigger" value={selectedEntry.origin === "local" ? "Applied locally" : selectedEntry.eventType === "remote-history" ? "Remote system" : "Preview fetch"} />
                   <DataPoint label="Result" value={selectedEntry.summary} emphasis />
-                  <DataPoint label="Changed fields" value={String(selectedEntry.changesCount ?? 0)} />
+                  {selectedEntry.baseVersion && <DataPoint label="Base version" value={selectedEntry.baseVersion} />}
+                  {selectedEntry.resultVersion && <DataPoint label="Result version" value={selectedEntry.resultVersion} />}
                 </div>
                 <Separator />
                 <Card size="sm" className="border border-border/70 bg-background/40">
@@ -138,7 +146,7 @@ export function HistoryPage({ integrationId }: { integrationId: IntegrationId })
                     <CardTitle className="text-sm">Details</CardTitle>
                     <CardDescription>Description recorded with this history event.</CardDescription>
                   </CardHeader>
-                  <CardContent className="text-muted-foreground">{selectedEntry.details}</CardContent>
+                  <CardContent className="text-muted-foreground">{selectedEntry.details ?? "—"}</CardContent>
                 </Card>
               </SurfaceSection>
             </div>

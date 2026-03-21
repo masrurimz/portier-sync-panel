@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@portier-sync/ui/components/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@portier-sync/ui/components/card";
 import { Button } from "@portier-sync/ui/components/button";
-import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
+import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
-import { integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
+import { getLocalSnapshot, integrationsListQueryOptions, type IntegrationId } from "@portier-sync/api";
 import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
 import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
 import { useIsSyncing, useReviewActions, useReviewBatch, useSyncError } from "../-state/review-store";
@@ -21,6 +21,10 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
   const batch = useReviewBatch(integrationId);
   const syncError = useSyncError(integrationId) ?? null;
 
+  const { data: localSnapshot } = useQuery({
+    queryKey: ["local", "snapshot", integrationId],
+    queryFn: () => getLocalSnapshot(integrationId),
+  });
   // Guard: integration not yet hydrated in query state
   if (!integration) {
     return (
@@ -99,6 +103,16 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
         </AlertDescription>
       </Alert>
 
+      {batch?.status === "stale" && (
+        <Alert variant="destructive">
+          <ShieldAlertIcon />
+          <AlertTitle>Draft is out of date</AlertTitle>
+          <AlertDescription>
+            The local database was updated after this preview was fetched. Fetch latest again to create a fresh comparison.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {fetchResult !== null && (
         <Card className="border border-border/70 bg-background/40">
           <CardHeader>
@@ -172,6 +186,9 @@ export function DetailPage({ integrationId }: { integrationId: IntegrationId }) 
                 <DataPoint label="Current version" value={integration.version} />
                 <DataPoint label="Last synced" value={formatRelativeTime(integration.lastSynced)} />
                 <DataPoint label="Pending review" value={`${pendingCount} fields`} />
+                <DataPoint label="Local version" value={localSnapshot?.localVersion ?? integration.version} />
+                <DataPoint label="Local records" value={localSnapshot ? localSnapshot.recordCount.toLocaleString("en-US") : "—"} />
+                <DataPoint label="Local updated" value={localSnapshot ? formatRelativeTime(new Date(localSnapshot.updatedAt)) : "—"} />
               </CardContent>
             </Card>
             <Card size="sm" className="border border-border/70 bg-background/40">
