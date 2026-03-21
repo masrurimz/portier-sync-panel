@@ -119,5 +119,4 @@ The Docker container runs `bun run serve` (Vite preview) on port 3001. The brows
 
 - `portier-sync-7mc` — design proper SSR/MSW architecture and remove `ssr: false`
 - `portier-sync-s2c` — dual browser/server MSW bootstrap (in-progress on separate branch)
-- `portier-sync-rof` — replace `integrationHealthSeed` with API-backed provider status
 - `portier-sync-q5b.4` — move review classification from client heuristics to backend-owned payload

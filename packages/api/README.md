@@ -62,6 +62,7 @@ Relative paths; not remote-style. Serve MSW-backed local DB for apply/review flo
 
 - `integrations.list`
 - `integrations.get`
+- `integrations.status`
 - `history.list`
 - `sync.preview`
 
@@ -105,6 +106,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import {
   integrationsListQueryOptions,
   integrationDetailQueryOptions,
+  integrationStatusQueryOptions,
   integrationsKeys,
 } from '@portier-sync/api'
 
@@ -114,6 +116,13 @@ const list = useSuspenseQuery(
 
 const detail = useSuspenseQuery(
   integrationDetailQueryOptions({
+    input: { id: '4' },
+    staleTime: 30_000,
+  })
+)
+
+const status = useSuspenseQuery(
+  integrationStatusQueryOptions({
     input: { id: '4' },
     staleTime: 30_000,
   })
