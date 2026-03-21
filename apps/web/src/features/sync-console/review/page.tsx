@@ -365,9 +365,9 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
                     {focusItem.conflict && !focusItem.resolution.kind
                       ? "Needs decision"
                       : focusItem.resolution.kind === "local"
-                        ? "Keep local"
+                        ? "Keep current"
                         : focusItem.resolution.kind === "external"
-                          ? "Accept remote"
+                          ? "Accept incoming"
                           : focusItem.resolution.kind === "merged"
                             ? "Custom value"
                             : "Approved"}

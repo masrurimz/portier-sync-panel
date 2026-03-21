@@ -2,7 +2,7 @@ import { useFieldContext } from '../resolution-form'
 import type { ReviewResolution } from '../../../-domain/review'
 
 export function ResolutionChoiceField({
-  applicationName: _applicationName,
+  applicationName,
   currentKind,
   onAutoSave,
 }: {
@@ -25,11 +25,11 @@ export function ResolutionChoiceField({
         }}
         type="button"
       >
-        <div className="text-sm font-medium">Keep local</div>
+        <div className="text-sm font-medium">Keep current</div>
         <div className="mt-1 text-xs leading-5">
           {currentKind === 'local'
             ? 'Currently selected for the focused field.'
-            : 'Available choice for the focused field.'}
+            : 'Keep the value currently stored in Portier.'}
         </div>
       </button>
       <button
@@ -43,11 +43,11 @@ export function ResolutionChoiceField({
         }}
         type="button"
       >
-        <div className="text-sm font-medium">Accept remote</div>
+        <div className="text-sm font-medium">Accept incoming</div>
         <div className="mt-1 text-xs leading-5">
           {currentKind === 'external'
             ? 'Currently selected for the focused field.'
-            : 'Available choice for the focused field.'}
+            : `Accept the incoming value from ${applicationName}.`}
         </div>
       </button>
       <button
