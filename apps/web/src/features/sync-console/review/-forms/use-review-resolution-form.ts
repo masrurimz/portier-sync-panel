@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import type { ReviewItem, ReviewResolution } from '../../domain/review'
+import type { ReviewItem, ReviewResolution } from '../../-domain/review'
 import { toResolutionFormDefaults, useAppForm } from './resolution-form'
 
 export function useReviewResolutionForm({

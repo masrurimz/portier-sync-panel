@@ -4,5 +4,5 @@ export { OverviewPage } from './overview/page';
 export { DetailPage } from './detail/page';
 export { HistoryPage } from './history/page';
 export { ReviewPage } from './review/page';
-export { SyncSessionProvider, useSyncSession } from './state/sync-session-provider';
-export { StatusBadge } from './shared/ui';
+export { SyncSessionProvider, useSyncSession } from './-state/sync-session-provider';
+export { StatusBadge } from './-ui/ui';

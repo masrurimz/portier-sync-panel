@@ -1,8 +1,8 @@
 import type { Integration, IntegrationId } from "@portier-sync/api";
-import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations, integrationHealthSeed } from "../domain/integration";
-import { conflictItems, getPreviewLines, selectedItems, type ReviewBatch } from "../domain/review";
-import type { ConsoleMetric } from "../domain/integration";
-import type { SyncFetchError } from "../api/sync-preview";
+import { buildIntegrationMetrics, buildOverviewMetrics, getPriorityIntegrations, integrationHealthSeed } from "../-domain/integration";
+import { conflictItems, getPreviewLines, selectedItems, type ReviewBatch } from "../-domain/review";
+import type { ConsoleMetric } from "../-domain/integration";
+import type { SyncFetchError } from "../-api/sync-preview";
 
 export function selectOverviewMetrics(integrations: Integration[]): ConsoleMetric[] {
   return buildOverviewMetrics(integrations);

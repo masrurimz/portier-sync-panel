@@ -1,5 +1,5 @@
 import { AlertTriangleIcon, CheckCircle2Icon, CircleIcon } from 'lucide-react';
-import type { ReviewItem } from '../../domain/review';
+import type { ReviewItem } from '../../-domain/review';
 
 /**
  * Return the visual state indicator for a review item.

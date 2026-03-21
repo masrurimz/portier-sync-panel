@@ -16,8 +16,8 @@ import {
 } from "@portier-sync/ui/components/table";
 import { SearchIcon, SlidersHorizontalIcon } from "lucide-react";
 
-import { LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection, DataPoint } from "../shared/ui";
-import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../domain/integration";
+import { LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection, DataPoint } from "../-ui/ui";
+import { buildOverviewMetrics, getPriorityIntegrations, formatRelativeTime } from "../-domain/integration";
 
 export function OverviewPage() {
   const { data: integrations } = useSuspenseQuery(integrationsListQueryOptions());

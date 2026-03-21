@@ -1,5 +1,5 @@
 import { useFieldContext } from '../resolution-form'
-import type { ReviewResolution } from '../../../domain/review'
+import type { ReviewResolution } from '../../../-domain/review'
 
 export function ResolutionChoiceField({
   applicationName,

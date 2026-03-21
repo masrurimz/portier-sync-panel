@@ -19,11 +19,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { Layers2Icon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 
 import type { IntegrationId } from "@portier-sync/api";
-import { useSyncSession } from "../state/sync-session-provider";
-import { ReviewResolutionForm } from "./components/review-resolution-form";
-import { getItemIndicator } from "./lib/get-item-indicator";
-import { ReviewStat, ValuePanel } from "./ui";
-import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../shared/ui";
+import { useSyncSession } from "../-state/sync-session-provider";
+import { ReviewResolutionForm } from "./review-resolution-form";
+import { getItemIndicator } from "./-ui/get-item-indicator";
+import { ReviewStat, ValuePanel } from "./-ui";
+import { DataPoint, LinkButton, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) {
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ export function ReviewPage({ integrationId }: { integrationId: IntegrationId }) 
 
   // Auto-save a resolution and advance focus to the next unresolved conflict.
   const handleAutoSave = React.useCallback(
-    (resolution: import("../domain/review").ReviewResolution) => {
+    (resolution: import("../-domain/review").ReviewResolution) => {
       updateReviewDecision(integrationId, focusedId, resolution);
       // Advance to next unresolved conflict (skip the item just resolved).
       const next = batch.items.find((item) => item.id !== focusedId && item.conflict && !item.resolution.kind);

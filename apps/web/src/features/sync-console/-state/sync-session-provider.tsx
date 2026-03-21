@@ -3,8 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { integrationsListQueryOptions, type Integration, type IntegrationId, type SyncHistoryEntry } from "@portier-sync/api";
-import { findIntegration, integrationHealthSeed } from "../domain/integration";
-import { buildAppliedHistoryEntry } from "../domain/history";
+import { findIntegration, integrationHealthSeed } from "../-domain/integration";
+import { buildAppliedHistoryEntry } from "../-domain/history";
 import {
   applyStatusFromBatch,
   buildBatchFromApi,
@@ -13,9 +13,9 @@ import {
   type ReviewBatch,
   type ReviewItem,
   type ReviewResolution,
-} from "../domain/review";
-import { normalizeApiError, normalizeThrownError, type SyncFetchError } from "../api/sync-preview";
-import { syncPreviewQueryKey, syncClient } from "../api/sync-preview.query";
+} from "../-domain/review";
+import { normalizeApiError, normalizeThrownError, type SyncFetchError } from "../-api/sync-preview";
+import { syncPreviewQueryKey, syncClient } from "../-api/sync-preview.query";
 
 interface SyncSessionContextValue {
   integrations: Integration[];

@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@port
 import { CheckCircle2Icon, DatabaseZapIcon, GitCompareArrowsIcon, HistoryIcon, RefreshCwIcon, ShieldCheckIcon } from "lucide-react";
 
 import type { IntegrationId } from "@portier-sync/api";
-import { useSyncSession } from "../state/sync-session-provider";
-import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../domain/integration";
-import { selectPendingReviewCount, selectPreviewLines } from "../state/sync-session-selectors";
-import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../shared/ui";
+import { useSyncSession } from "../-state/sync-session-provider";
+import { buildIntegrationMetrics, formatRelativeTime, integrationHealthSeed } from "../-domain/integration";
+import { selectPendingReviewCount, selectPreviewLines } from "../-state/sync-session-selectors";
+import { DataPoint, LinkButton, MetricGrid, PageShell, StatusBadge, SurfaceSection } from "../-ui/ui";
 
 export function DetailPage({ integrationId }: { integrationId: IntegrationId }) {
   const { integrations, syncingId, syncNow, reviewBatches, syncErrors } = useSyncSession();

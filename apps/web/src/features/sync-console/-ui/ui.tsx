@@ -14,7 +14,7 @@ import { Link } from "@tanstack/react-router";
 import { AlertTriangleIcon, CheckCircle2Icon, CircleDashedIcon, ShieldAlertIcon } from "lucide-react";
 
 import type { Integration, IntegrationId } from "@portier-sync/api";
-import type { ConsoleMetric } from "../domain/integration";
+import type { ConsoleMetric } from "../-domain/integration";
 
 export function PageShell({
   eyebrow,

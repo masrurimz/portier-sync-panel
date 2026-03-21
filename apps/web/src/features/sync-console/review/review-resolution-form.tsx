@@ -1,5 +1,5 @@
-import type { ReviewItem, ReviewResolution } from '../../domain/review'
-import { useReviewResolutionForm } from '../forms/use-review-resolution-form'
+import type { ReviewItem, ReviewResolution } from '../-domain/review'
+import { useReviewResolutionForm } from './-forms/use-review-resolution-form'
 
 export function ReviewResolutionForm({
   item,

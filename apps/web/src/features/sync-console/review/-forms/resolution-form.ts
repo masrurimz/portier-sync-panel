@@ -1,7 +1,7 @@
 import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
 import { z } from 'zod'
 
-import type { ReviewItem } from '../../domain/review'
+import type { ReviewItem } from '../../-domain/review'
 import { MergedValueField } from './fields/merged-value-field'
 import { NotesField } from './fields/notes-field'
 import { ResolutionChoiceField } from './fields/resolution-choice-field'

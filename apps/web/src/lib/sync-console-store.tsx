@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 
 import type { ApplicationId } from "./api-types";
-import { integrationHealthSeed, type ConsoleMetric } from "../features/sync-console/domain/integration";
-import type { ReviewItem, ReviewResolution } from "../features/sync-console/domain/review";
-import { useSyncSession } from "../features/sync-console/state/sync-session-provider";
+import { integrationHealthSeed, type ConsoleMetric } from "../features/sync-console/-domain/integration";
+import type { ReviewItem, ReviewResolution } from "../features/sync-console/-domain/review";
+import { useSyncSession } from "../features/sync-console/-state/sync-session-provider";
 import {
   selectConflictCount,
   selectIntegrationMetrics,
@@ -11,7 +11,7 @@ import {
   selectPendingReviewCount,
   selectPriorityIntegrations,
   selectPreviewLines,
-} from "../features/sync-console/state/sync-session-selectors";
+} from "../features/sync-console/-state/sync-session-selectors";
 
 export type { ConsoleMetric, ReviewItem, ReviewResolution };
 

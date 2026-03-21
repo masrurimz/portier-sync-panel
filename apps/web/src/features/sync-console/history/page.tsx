@@ -7,9 +7,9 @@ import { Separator } from "@portier-sync/ui/components/separator";
 import { BotIcon, HistoryIcon, UserIcon } from "lucide-react";
 
 import type { IntegrationId, SyncHistoryEntry } from "@portier-sync/api";
-import { useSyncSession } from "../state/sync-session-provider";
-import { integrationHistoryQueryOptions } from "../api/history.query";
-import { DataPoint, PageShell, SurfaceSection } from "../shared/ui";
+import { useSyncSession } from "../-state/sync-session-provider";
+import { integrationHistoryQueryOptions } from "../-api/history.query";
+import { DataPoint, PageShell, SurfaceSection } from "../-ui/ui";
 
 export function HistoryPage({ integrationId }: { integrationId: IntegrationId }) {
   const { integrations, historyByIntegration } = useSyncSession();
