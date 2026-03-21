@@ -19,7 +19,7 @@ export const localDbHandlers = [
       );
     }
 
-    return HttpResponse.json({ data: snapshot });
+    return HttpResponse.json({ code: 'SUCCESS', message: 'Snapshot retrieved', data: snapshot });
   }),
 
   http.put(`${BASE_URL}/api/v1/integrations/:id/apply-review`, async ({ params, request }) => {
@@ -67,12 +67,12 @@ export const localDbHandlers = [
 
     localAuditLog.unshift(auditEntry);
 
-    return HttpResponse.json({ data: { snapshot, auditEntry } });
+    return HttpResponse.json({ code: 'SUCCESS', message: 'Review applied', data: { snapshot, auditEntry } });
   }),
 
   http.get(`${BASE_URL}/api/v1/integrations/:id/audit`, ({ params }) => {
     const { id } = params as { id: string };
     const entries = localAuditLog.filter((e) => e.integrationId === id);
-    return HttpResponse.json({ data: entries });
+    return HttpResponse.json({ code: 'SUCCESS', message: 'Audit entries retrieved', data: entries });
   }),
 ];
