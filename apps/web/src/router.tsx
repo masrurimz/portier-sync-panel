@@ -7,9 +7,10 @@ import Loader from "./components/loader";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-const mswReady = (async () => {
-  if (!import.meta.env.DEV) return;
+const enableMsw = import.meta.env.DEV || import.meta.env.VITE_DEMO_MSW === "1";
 
+const mswReady = (async () => {
+  if (!enableMsw) return;
   if (typeof window !== "undefined") {
     const { worker } = await import("./mocks/browser");
     await worker.start({ onUnhandledRequest: "bypass" });
